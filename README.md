@@ -8,8 +8,8 @@ VEGA is a generative model aimed at analyzing _a priori_ specified latent variab
 VEGA needs 2 things to analyze your data:
 
 
-..* A single-cell dataset wrapped using the Scanpy package (Wolf et al. 2018)
-..* A GMT file specifying the gene module variables (GMVs) and gene membership, eg. from MSigDB
+* A single-cell dataset wrapped using the Scanpy package (Wolf et al. 2018)
+* A GMT file specifying the gene module variables (GMVs) and gene membership, eg. from MSigDB
 
 ## Differential GMVs activity
 VEGA provides statistical analysis of the latent variable after training. 
