@@ -2,7 +2,7 @@
 ### _A VAE for analyzing pathways, transcription factors, cell types in single-cell RNA-seq data_
 
 ## Introduction
-VEGA is a generative model aimed at analyzing _a priori_ specified latent variables such as pathways. VEGA is implemented with pytorch.
+VEGA is a VAE aimed at analyzing _a priori_ specified latent variables such as pathways. VEGA is implemented with pytorch.
 
 ## Getting started
 VEGA needs 2 things to analyze your data:
@@ -12,7 +12,7 @@ VEGA needs 2 things to analyze your data:
 * A GMT file specifying the gene module variables (GMVs) and gene membership, eg. from MSigDB
 
 ## Differential GMVs activity
-VEGA provides statistical analysis of the latent variable after training. 
+VEGA provides a statistical framework for identifying differentially activated GMVs. See vega-reproducibility github for examples.
 
 ## Reproducing paper results
 VEGA manuscript results can be reproduced using [the following code](https://github.com/LucasESBS/vega-reproducibility).
