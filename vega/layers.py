@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-From Uchida Takumi https://github.com/uchida-takumi/CustomizedLinear/blob/master/CustomizedLinear.py
-extended torch.nn module which cusmize connection.
+Customized Linear from Uchida Takumi with modifications 
+https://github.com/uchida-takumi/CustomizedLinear/blob/master/CustomizedLinear.py
 This code base on https://pytorch.org/docs/stable/notes/extending.html
 """
 import math
@@ -12,7 +12,7 @@ import torch.nn as nn
 
 class CustomizedLinearFunction(torch.autograd.Function):
     """
-    autograd function which masks it's weights by 'mask'.
+    Autograd function which masks it's weights by 'mask'.
     """
 
     # Note that both forward and backward are @staticmethods
@@ -31,11 +31,6 @@ class CustomizedLinearFunction(torch.autograd.Function):
     # This function has only a single output, so it gets only one gradient
     @staticmethod
     def backward(ctx, grad_output):
-        # This is a pattern that is very convenient - at the top of backward
-        # unpack saved_tensors and initialize all gradients w.r.t. inputs to
-        # None. Thanks to the fact that additional trailing Nones are
-        # ignored, the return statement is simple even when the function has
-        # optional inputs.
         input, weight, bias, mask = ctx.saved_tensors
         grad_input = grad_weight = grad_bias = grad_mask = None
 
@@ -78,14 +73,6 @@ class CustomizedLinear(nn.Module):
             self.mask = torch.tensor(mask, dtype=torch.float).t()
 
         self.mask = nn.Parameter(self.mask, requires_grad=False)
-
-        # nn.Parameter is a special kind of Tensor, that will get
-        # automatically registered as Module's parameter once it's assigned
-        # as an attribute. Parameters and buffers need to be registered, or
-        # they won't appear in .parameters() (doesn't apply to buffers), and
-        # won't be converted when e.g. .cuda() is called. You can use
-        # .register_buffer() to register buffers.
-        # nn.Parameters require gradients by default.
         self.weight = nn.Parameter(torch.Tensor(self.output_features, self.input_features))
 
         if bias:
@@ -124,23 +111,3 @@ class CustomizedLinear(nn.Module):
         )
 
 
-
-
-
-if __name__ == 'check grad':
-    from torch.autograd import gradcheck
-
-    # gradcheck takes a tuple of tensors as input, check if your gradient
-    # evaluated with these tensors are close enough to numerical
-    # approximations and returns True if they all verify this condition.
-
-    customlinear = CustomizedLinearFunction.apply
-
-    input = (
-            torch.randn(20,20,dtype=torch.double,requires_grad=True),
-            torch.randn(30,20,dtype=torch.double,requires_grad=True),
-            None,
-            None,
-            )
-    test = gradcheck(customlinear, input, eps=1e-6, atol=1e-4)
-    print(test)

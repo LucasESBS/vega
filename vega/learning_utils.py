@@ -6,7 +6,7 @@ from sklearn.model_selection import StratifiedKFold
 
 class EarlyStopping:
     """
-    Early stops the training if validation loss doesn't improve after a given patience.
+    Early stops the training if training/validation loss doesn't improve after a given patience.
     """
     def __init__(self, patience=7, verbose=False, delta=0,mode='train'):
         """
@@ -92,7 +92,6 @@ class WeightClipper(object):
             module.weight.data = w
 
 ## -- CrossValidation -- ##
-
 class KFoldTorch:
     def __init__(self, cv=10, lr=1e-2, n_epochs=10, train_p=10, test_p=10, num_workers=0, save_all=True, save_best=False, path_dir='./', model_prefix='trained_model_'):
         """ 
@@ -143,17 +142,14 @@ class KFoldTorch:
         best_model = None
         for i, (train_idx, test_idx) in enumerate(kfold.split(dataset, dataset.targets)):
             # Initialize model
-            #model = copy.deepcopy(blank_model)
             model = blank_model(**model_params).to(model_params['device'])
-            print(model.dev)
-            #print(model_params['device'])
             print('Training fold %d'%(i), flush=True)
             train_ds = torch.utils.data.Subset(dataset, train_idx)
             test_ds = torch.utils.data.Subset(dataset, test_idx)
             train_loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=drop_last_batch, num_workers=self.num_work)
             test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=True, drop_last=drop_last_batch, num_workers=self.num_work)
             # Train model
-            epoch_hist = model.train_model(train_loader, test_loader=test_loader, n_epochs=self.n_epochs, learning_rate=self.lr, train_patience=self.train_p, test_patience=self.test_p, save_model=False)
+            epoch_hist = model._train_model(train_loader, test_loader=test_loader, n_epochs=self.n_epochs, learning_rate=self.lr, train_patience=self.train_p, test_patience=self.test_p, save_model=False)
             # Save attributes
             self.cv_res_dict[i]['history'] = epoch_hist
             if 'valid_loss' in epoch_hist.keys():
@@ -186,3 +182,40 @@ class KFoldTorch:
             print('Best model already saved for fold %d'%(self.best_cv), flush=True)
 
         return
+
+# --- General purpose datasets --- #
+class ClassificationDataset(torch.utils.data.Dataset):
+    "Characterizes a classification dataset for PyTorch"
+    def __init__(self, data, targets):
+        "Initialization"
+        self.targets = targets
+        self.data = data
+
+    def __len__(self):
+        "Denotes the total number of samples"
+        return len(self.targets)
+
+    def __getitem__(self, index):
+        "Generates samples of data"
+        # Load data and get label
+        X = self.data[index]
+        y = self.targets[index]
+
+        return X, y.long()
+
+class UnsupervisedDataset(torch.utils.data.Dataset):
+    "Characterizes a unsupervised learning dataset for PyTorch"
+    def __init__(self, data, targets=None):
+        "Initialization"
+        self.targets = targets
+        self.data = data
+
+    def __len__(self):
+        "Denotes the total number of samples"
+        return len(self.data)
+
+    def __getitem__(self, index):
+        "Generates samples of data"
+        # Load data
+        X = self.data[index]
+        return X

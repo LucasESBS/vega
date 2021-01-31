@@ -3,9 +3,94 @@ import torch
 import numpy as np
 import scanpy as sc
 from scipy import sparse
+import vega
 
+def setup_anndata(adata, copy=False):
+    """
+    Creates VEGA fields in input Anndata object for mask.
+    Args:
+        adata (Anndata): Scanpy single-cell object.
+        copy (bool): Whether to return a copy or change in place.
+    Return:
+        adata (Anndata): updated object if copy is True.
+    """
+    if copy:
+        adata = adata.copy()
 
-def dict_to_gmt(dict_obj, path_gmt, sep='\t', second_col=True):
+    if adata.is_view:
+        raise ValueError(
+            "Current adata object is a View. Please run `adata = adata.copy()` or use copy=True"
+        )
+    
+    adata.uns['_vega'] = {}
+    adata.uns['_vega']['version'] = vega.__version__
+    if copy:
+        return adata
+
+def create_mask(adata, gmt_paths=None, add_nodes=1, min_genes=0, max_genes=1000, copy=False):
+    """ 
+    Initialize mask M for GMV from one or multiple .gmt files.
+    Args:
+        adata (Anndata): Scanpy single-cell object.
+        gmt_paths (str or list): one or several paths to .gmt files.
+        add_nodes (int): Additional latent nodes for capturing additional variance.
+        min_genes (int): Minimum number of genes per GMV.
+        max_genes (int): Maximum number of genes per GMV.
+        copy (bool): Whether to return a copy of the updated Anndata object.
+    Return:
+        adata (Anndata): Scanpy single-cell object.
+    """
+    if copy:
+        adata = adata.copy()
+    # Check if mask already exists
+    if 'mask' in adata.uns['_vega'].keys():
+        raise ValueError(
+            " Mask already existing in Anndata object. Re-run setup_anndata() if you wish to erase previous mask information."
+        )
+    dict_gmv = OrderedDict()
+    # Check if path is a string
+    if type(gmt_paths) == str:
+        gmt_paths = [gmt_paths]
+    for f in gmt_paths:
+        d_f = _read_gmt(f, sep='\t', min_g=min_genes, max_g=max_genes)
+        # Add to final dictionary
+        dict_gmv.update(d_f)
+
+    # Create mask
+    mask = _make_gmv_mask(feature_list=adata.var.index.tolist(), dict_gmv=dict_gmv, add_nodes=add_nodes)
+
+    adata.uns['_vega']['mask'] = mask
+    adata.uns['_vega']['gmv_names'] = list(dict_gmv.keys()) + ['UNANNOTATED_'+str(k) for k in range(add_nodes)]
+    adata.uns['_vega']['add_nodes'] = add_nodes
+
+    if copy:
+        return adata
+        
+
+def _make_gmv_mask(feature_list, dict_gmv, add_nodes):
+    """ 
+    Creates a mask of shape [genes,GMVs] where (i,j) = 1 if gene i is in GMV j, 0 else.
+    Note: dict_gmv should be an Ordered dict so that the ordering can be later interpreted.
+    Args:
+        feature_list (list): List of genes in single-cell dataset.
+        dict_gmv (OrderedDict): Dictionary of gene_module:genes.
+        add_nodes (int): Number of additional, fully connected nodes.
+    Return:
+        p_mask (np.array): Gene module mask
+    """
+    assert type(dict_gmv) == OrderedDict
+    p_mask = np.zeros((len(feature_list), len(dict_gmv)))
+    for j, k in enumerate(dict_gmv.keys()):
+        for i in range(p_mask.shape[0]):
+            if feature_list[i] in dict_gmv[k]:
+                p_mask[i,j] = 1.
+    # Add unannotated nodes
+    n = add_nodes
+    vec = np.ones((p_mask.shape[0], n))
+    p_mask = np.hstack((p_mask, vec))
+    return p_mask
+
+def _dict_to_gmt(dict_obj, path_gmt, sep='\t', second_col=True):
     """ 
     Write dictionary to gmt format.
     Args:
@@ -24,7 +109,7 @@ def dict_to_gmt(dict_obj, path_gmt, sep='\t', second_col=True):
     return
          
 
-def read_gmt(fname, sep='\t', min_g=0, max_g=5000):
+def _read_gmt(fname, sep='\t', min_g=0, max_g=5000):
     """
     Read GMT file into dictionary of gene_module:genes.
     min_g and max_g are optional gene set size filters.
@@ -34,128 +119,73 @@ def read_gmt(fname, sep='\t', min_g=0, max_g=5000):
         min_g (int): Minimum of gene members in gene module
         max_g (int): Maximum of gene members in gene module
     Return:
-        dict_pathway (OrderedDict): Dictionary of gene_module:genes
+        dict_gmv (OrderedDict): Dictionary of gene_module:genes
     """
-    dict_pathway = OrderedDict()
+    dict_gmv = OrderedDict()
     with open(fname) as f:
         lines = f.readlines()
         for line in lines:
             line = line.strip()
             val = line.split(sep)
             if min_g <= len(val[2:]) <= max_g:
-                dict_pathway[val[0]] = val[2:]
-    return dict_pathway
+                dict_gmv[val[0]] = val[2:]
+    return dict_gmv
 
-def create_pathway_mask(feature_list, dict_pathway, add_missing=1, fully_connected=True, to_tensor=False):
-    """ Creates a mask of shape [genes,pathways] where (i,j) = 1 if gene i is in pathway j, 0 else.
-    Expects a list of genes and pathway dict.
-    Note: dict_pathway should be an Ordered dict so that the ordering can be later interpreted.
+def _anndata_loader(adata, batch_size, shuffle=False):
+    """
+    Load Anndata object into pytorch standard dataloader.
     Args:
-        feature_list (list): List of genes in single-cell dataset
-        dict_pathway (OrderedDict): Dictionary of gene_module:genes
-        add_missing (int): Number of additional, fully connected nodes
-        fully_connected (bool): Whether to fully connect additional nodes or not
-        to_tensor (False): Whether to convert mask to tensor or not
+        adata (AnnData): Scanpy Anndata object.
+        batch_size (int): Cells per batch.
+        shuffle (bool): Whether to shuffle data or not.
     Return:
-        p_mask (torch.tensor or np.array): Gene module mask
+        sc_dataloader (torch.DataLoader): Dataloader containing the data.
     """
-    assert type(dict_pathway) == OrderedDict
-    p_mask = np.zeros((len(feature_list), len(dict_pathway)))
-    for j, k in enumerate(dict_pathway.keys()):
-        for i in range(p_mask.shape[0]):
-            if feature_list[i] in dict_pathway[k]:
-                p_mask[i,j] = 1.
-    if add_missing:
-        n = 1 if type(add_missing)==bool else add_missing
-        # Get non connected genes
-        if not fully_connected:
-            idx_0 = np.where(np.sum(p_mask, axis=1)==0)
-            vec = np.zeros((p_mask.shape[0],n))
-            vec[idx_0,:] = 1.
-        else:
-            vec = np.ones((p_mask.shape[0], n))
-        p_mask = np.hstack((p_mask, vec))
-    if to_tensor:
-        p_mask = torch.Tensor(p_mask)
-    return p_mask
-
-def filter_pathways(pathway_list, pathway_mask, top_k=1000):
-    """ 
-    Filter pathway by size.
-    Args:
-        pathway_list (list): Name of gene modules
-        pathway_mask (np.array): Gene module mask
-        top_k (int): Number of top pathway to retain
-    Return:
-        pathway_list_filtered (list): Name of retained gene modules
-        pathway_mask_filtered (np.array): Filtered gene module mask
-    """
-    print('Retaining top ',top_k,' pathways')
-    idx_sorted = np.argsort(np.sum(pathway_mask, axis=0))[::-1][:top_k]
-    pathway_mask_filtered = pathway_mask[:,idx_sorted]
-    pathway_list_filtered = list(np.array(pathway_list)[idx_sorted])
-    return pathway_list_filtered, pathway_mask_filtered
-
-def prepare_anndata(anndata, batch_size, shuffle=False):
-    """
-    Load Anndata object into pytorch data loader.
-    Args:
-        anndata (AnnData): Scanpy Anndata object
-        batch_size (int): Cells per batch
-        shuffle (bool): Whether to shuffle data or not
-    Return:
-        my_dataloader (torch.DataLoader): Dataloader containing the data
-    """
-    # Add shuffling here
-    if sparse.issparse(anndata.X):
-        data = anndata.X.A
+    if sparse.issparse(adata.X):
+        data = adata.X.A
     else:
-        data = anndata.X
+        data = adata.X
     data = torch.Tensor(data)
-    my_dataloader = torch.utils.data.DataLoader(data, shuffle=shuffle, batch_size=batch_size)
-    return my_dataloader
+    sc_dataloader = torch.utils.data.DataLoader(data, shuffle=shuffle, batch_size=batch_size)
+    return sc_dataloader
 
-def balance_populations(adata, ct_key='cell_type', condition_key='condition'):
-    """ 
-    Balance cell population within condition for unbias sampling and delta estimation.
-    Args:
-        adata (Anndata): Scanpy single-cell object
-        ct_key (str): Anndata.obs column name with cell types
-        condition_key (str): Anndata.obs column name with conditions
-    Return:
-        balanced_adata (Anndata): Scanpy single-cell object with balanced populations
+def _anndata_splitter(adata, train_size):
     """
-    ct_names = adata.obs[ct_key].unique()
-    ct_counts = adata.obs[ct_key].value_counts()
-    max_val = np.max(ct_counts)
-    data = []
-    label = []
-    condition = []
-    for ct in ct_names:
-        tmp = adata.copy()[adata.obs[ct_key] == ct]
-        idx = np.random.choice(range(len(tmp)), max_val)
-        if sparse.issparse(tmp.X):
-            tmp_X = tmp.X.A[idx]
-        else:
-            tmp_X = tmp.X[idx]
-        data.append(tmp_X)
-        label.append(np.repeat(ct, max_val))
-        condition.append(np.repeat(np.unique(tmp.obs[condition_key]), max_val))
-    balanced_adata = sc.AnnData(np.concatenate(data))
-    balanced_adata.obs[ct_key] = np.concatenate(label)
-    balanced_adata.obs[condition_key] = np.concatenate(condition)
-    return balanced_adata
+    Splits Anndata object into a training and test set. Test proportion is 1-train_size.
+    Args:
+        adata (Anndata): Scanpy Anndata object.
+        train_size (float): Proportion of whole dataset in training. Between 0 and 1.
+    Returns:
+        train_adata (Anndata): Training data subset.
+        test_adata (Anndata): Test data subset.
+    """
+    assert train_size != 0
+    n = len(adata)
+    n_train = int(train_size*n)
+    #n_test = n - n_train
+    perm_idx = np.random.permutation(n)
+    train_idx = perm_idx[:n_train]
+    test_idx = perm_idx[n_train:]
+    train_adata = adata.copy()[train_idx,:]
+    if len(test_idx) != 0:
+        test_adata = adata.copy()[test_idx,:]
+    else:
+        test_adata = False
+    return train_adata, test_adata
+    
 
-
-def preprocess_adata(adata, n_top_genes=5000):
+def preprocess_anndata(adata, n_top_genes=5000, copy=False):
     """
     Simple (default) Scanpy preprocessing function before autoencoders.
     Args:
-        adata (Anndata): Scanpy single-cell object
-        n_top_genes (int): Number of highly variable genes to retain
+        adata (Anndata): Scanpy single-cell object.
+        n_top_genes (int): Number of highly variable genes to retain.
+        copy (bool): Return a copy or in place.
     Return:
-        adata (Anndata): Preprocessed Anndata object
+        adata (Anndata): Preprocessed Anndata object.
     """
+    if copy:
+        adata = adata.copy()
     sc.pp.filter_cells(adata, min_genes=200)
     sc.pp.filter_genes(adata, min_cells=3)
     sc.pp.normalize_total(adata, target_sum=1e4)
@@ -163,41 +193,6 @@ def preprocess_adata(adata, n_top_genes=5000):
     sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes)
     adata.raw = adata
     adata = adata[:, adata.var.highly_variable]
-    return adata
+    if copy:
+        return adata
 
- 
-class ClassificationDataset(torch.utils.data.Dataset):
-    "Characterizes a classification dataset for PyTorch"
-    def __init__(self, data, targets):
-        "Initialization"
-        self.targets = targets
-        self.data = data
-
-    def __len__(self):
-        "Denotes the total number of samples"
-        return len(self.targets)
-
-    def __getitem__(self, index):
-        "Generates samples of data"
-        # Load data and get label
-        X = self.data[index]
-        y = self.targets[index]
-
-        return X, y.long()
-
-class UnsupervisedDataset(torch.utils.data.Dataset):
-    "Characterizes a unsupervised learning dataset for PyTorch"
-    def __init__(self, data, targets=None):
-        "Initialization"
-        self.targets = targets
-        self.data = data
-
-    def __len__(self):
-        "Denotes the total number of samples"
-        return len(self.data)
-
-    def __getitem__(self, index):
-        "Generates samples of data"
-        # Load data
-        X = self.data[index]
-        return X    
