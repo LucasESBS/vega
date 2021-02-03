@@ -30,6 +30,10 @@ sc.pp.log1p(adata)
 ```
 We also recommend using a subset of highly variable genes (5000-7000). See the [Scanpy documentation](https://scanpy.readthedocs.io/en/stable/index.html) for more information on preprocessing.
 
+
+## Tutorial
+A tutorial is available [here](https://github.com/LucasESBS/vega/blob/main/tutorials/Vega-tutorial.ipynb). It will guide the user through the different steps of the analysis with VEGA.
+
 ## Reproducing paper results
 VEGA manuscript results can be reproduced using [the following code](https://github.com/LucasESBS/vega-reproducibility).
 
