@@ -6,9 +6,9 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 from torch import nn, optim
-from customized_linear import CustomizedLinear
-from utils import *
-from learning_utils import *
+from .customized_linear import CustomizedLinear
+from .utils import *
+from .learning_utils import *
 import scanpy as sc
 from scipy import sparse
 
