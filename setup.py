@@ -13,7 +13,8 @@ required = ['torch==1.5.1',
             'seaborn',
             'scipy==1.4',
             'scanpy==1.5.1',
-            'umap-learn']
+            'umap-learn',
+            'adjustText']
 
 setuptools.setup(
     name="VEGA-LucaSC",
