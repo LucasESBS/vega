@@ -5,7 +5,7 @@
 VEGA is a VAE aimed at analyzing _a priori_ specified latent variables such as pathways. VEGA is implemented with pytorch.
 
 ## Installation
-VEGA runs with python3. We recommend to use a recent version of python3 (eg. python 3.7). To install VEGA, clone this repository:
+VEGA runs with python3. We recommend to use a recent version of python3 (eg. python>=3.6). To install VEGA, clone this repository:
 
 ```bash
 git clone https://github.com/LucasESBS/vega

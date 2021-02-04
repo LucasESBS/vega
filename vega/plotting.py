@@ -35,12 +35,12 @@ def volcano_plot(dfe_res,
     xlim_v = np.abs(dfe_res['bayes_factor']).max() + 0.5
     ylim_v = dfe_res[metric].max()+0.5
 
-    idx_sig = np.arange(len(dfe_res['bayes_factor']))[(np.abs(dfe_res['bayes_factor'])>sig_lvl) & (np.abs(dfe_res[metric])>lfc_lvl)]
+    idx_sig = np.arange(len(dfe_res['bayes_factor']))[(np.abs(dfe_res['bayes_factor'])>sig_lvl) & (np.abs(dfe_res[metric])>metric_lvl)]
     plt.scatter(dfe_res['bayes_factor'], dfe_res[metric], color='grey', s=s, alpha=0.8, linewidth=0)
     plt.scatter(dfe_res['bayes_factor'][idx_sig], dfe_res[metric][idx_sig], color='red', s=s*2, linewidth=0)
     plt.vlines(x=-sig_lvl, ymin=-0.5, ymax=ylim_v, color='black', linestyles='--', linewidth=1., alpha=0.2)
     plt.vlines(x=sig_lvl, ymin=-0.5, ymax=ylim_v, color='black', linestyles='--', linewidth=1., alpha=0.2)
-    plt.hlines(y=lfc_lvl, xmin=-xlim_v, xmax=xlim_v, color='black', linestyles='--', linewidth=1., alpha=0.2)
+    plt.hlines(y=metric_lvl, xmin=-xlim_v, xmax=xlim_v, color='black', linestyles='--', linewidth=1., alpha=0.2)
     texts = []
     if to_plot is None:
         for i in idx_sig:
