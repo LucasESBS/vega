@@ -8,11 +8,12 @@ from scipy import sparse
 def dict_to_gmt(dict_obj, path_gmt, sep='\t', second_col=True):
     """ 
     Write dictionary to gmt format.
+
     Args:
-        dict_obj (dict): Dictionary with gene_module:[members]
-        path_gmt (str): Path to save gmt file
-        sep (str): Separator to use when writing file
-        second_col (bool): Whether to duplicate the first column        
+        dict_obj (dict): Dictionary with gene_module:[members].
+        path_gmt (str): Path to save gmt file.
+        sep (str): Separator to use when writing file.
+        second_col (bool): Whether to duplicate the first column.        
     """
     with open(path_gmt, 'w') as f:
         for k,v in dict_obj.items():
@@ -26,15 +27,16 @@ def dict_to_gmt(dict_obj, path_gmt, sep='\t', second_col=True):
 
 def read_gmt(fname, sep='\t', min_g=0, max_g=5000):
     """
-    Read GMT file into dictionary of gene_module:genes.
+    Read GMT file into dictionary of gene_module:genes.\n
     min_g and max_g are optional gene set size filters.
+
     Args:
         fname (str): Path to gmt file
         sep (str): Separator used to read gmt file.
-        min_g (int): Minimum of gene members in gene module
-        max_g (int): Maximum of gene members in gene module
-    Return:
-        dict_pathway (OrderedDict): Dictionary of gene_module:genes
+        min_g (int): Minimum of gene members in gene module.
+        max_g (int): Maximum of gene members in gene module.
+    Returns:
+        OrderedDict: Dictionary of gene_module:genes.
     """
     dict_pathway = OrderedDict()
     with open(fname) as f:
@@ -47,17 +49,20 @@ def read_gmt(fname, sep='\t', min_g=0, max_g=5000):
     return dict_pathway
 
 def create_pathway_mask(feature_list, dict_pathway, add_missing=1, fully_connected=True, to_tensor=False):
-    """ Creates a mask of shape [genes,pathways] where (i,j) = 1 if gene i is in pathway j, 0 else.
+    """
+    Creates a mask of shape [genes,pathways] where (i,j) = 1 if gene i is in pathway j, 0 else.
+
     Expects a list of genes and pathway dict.
     Note: dict_pathway should be an Ordered dict so that the ordering can be later interpreted.
+
     Args:
-        feature_list (list): List of genes in single-cell dataset
-        dict_pathway (OrderedDict): Dictionary of gene_module:genes
-        add_missing (int): Number of additional, fully connected nodes
-        fully_connected (bool): Whether to fully connect additional nodes or not
-        to_tensor (False): Whether to convert mask to tensor or not
-    Return:
-        p_mask (torch.tensor or np.array): Gene module mask
+        feature_list (list): List of genes in single-cell dataset.
+        dict_pathway (OrderedDict): Dictionary of gene_module:genes.
+        add_missing (int): Number of additional, fully connected nodes.
+        fully_connected (bool): Whether to fully connect additional nodes or not.
+        to_tensor (False): Whether to convert mask to tensor or not.
+    Returns:
+        torch.tensor/np.array: Gene module mask.
     """
     assert type(dict_pathway) == OrderedDict
     p_mask = np.zeros((len(feature_list), len(dict_pathway)))
@@ -79,32 +84,16 @@ def create_pathway_mask(feature_list, dict_pathway, add_missing=1, fully_connect
         p_mask = torch.Tensor(p_mask)
     return p_mask
 
-def filter_pathways(pathway_list, pathway_mask, top_k=1000):
-    """ 
-    Filter pathway by size.
-    Args:
-        pathway_list (list): Name of gene modules
-        pathway_mask (np.array): Gene module mask
-        top_k (int): Number of top pathway to retain
-    Return:
-        pathway_list_filtered (list): Name of retained gene modules
-        pathway_mask_filtered (np.array): Filtered gene module mask
-    """
-    print('Retaining top ',top_k,' pathways')
-    idx_sorted = np.argsort(np.sum(pathway_mask, axis=0))[::-1][:top_k]
-    pathway_mask_filtered = pathway_mask[:,idx_sorted]
-    pathway_list_filtered = list(np.array(pathway_list)[idx_sorted])
-    return pathway_list_filtered, pathway_mask_filtered
-
 def prepare_anndata(anndata, batch_size, shuffle=False):
     """
     Load Anndata object into pytorch data loader.
+
     Args:
-        anndata (AnnData): Scanpy Anndata object
-        batch_size (int): Cells per batch
-        shuffle (bool): Whether to shuffle data or not
-    Return:
-        my_dataloader (torch.DataLoader): Dataloader containing the data
+        anndata (AnnData): Scanpy Anndata object.
+        batch_size (int): Cells per batch.
+        shuffle (bool): Whether to shuffle data or not.
+    Returns:
+        torch.DataLoader: Dataloader containing the data.
     """
     # Add shuffling here
     if sparse.issparse(anndata.X):
@@ -118,12 +107,13 @@ def prepare_anndata(anndata, batch_size, shuffle=False):
 def balance_populations(adata, ct_key='cell_type', condition_key='condition'):
     """ 
     Balance cell population within condition for unbias sampling and delta estimation.
+
     Args:
-        adata (Anndata): Scanpy single-cell object
-        ct_key (str): Anndata.obs column name with cell types
-        condition_key (str): Anndata.obs column name with conditions
-    Return:
-        balanced_adata (Anndata): Scanpy single-cell object with balanced populations
+        adata (Anndata): Scanpy single-cell object.
+        ct_key (str): Anndata.obs column name with cell types.
+        condition_key (str): Anndata.obs column name with conditions.
+    Returns:
+        Anndata: Scanpy single-cell object with balanced populations.
     """
     ct_names = adata.obs[ct_key].unique()
     ct_counts = adata.obs[ct_key].value_counts()
@@ -150,11 +140,12 @@ def balance_populations(adata, ct_key='cell_type', condition_key='condition'):
 def preprocess_adata(adata, n_top_genes=5000):
     """
     Simple (default) Scanpy preprocessing function before autoencoders.
+
     Args:
-        adata (Anndata): Scanpy single-cell object
-        n_top_genes (int): Number of highly variable genes to retain
-    Return:
-        adata (Anndata): Preprocessed Anndata object
+        adata (Anndata): Scanpy single-cell object.
+        n_top_genes (int): Number of highly variable genes to retain.
+    Returns:
+        Anndata: Preprocessed Anndata object.
     """
     sc.pp.filter_cells(adata, min_genes=200)
     sc.pp.filter_genes(adata, min_cells=3)
@@ -167,18 +158,23 @@ def preprocess_adata(adata, n_top_genes=5000):
 
  
 class ClassificationDataset(torch.utils.data.Dataset):
-    "Characterizes a classification dataset for PyTorch"
+    """
+    Characterizes a classification dataset for PyTorch.
+    """
     def __init__(self, data, targets):
-        "Initialization"
         self.targets = targets
         self.data = data
 
     def __len__(self):
-        "Denotes the total number of samples"
+        """
+        Denotes the total number of samples
+        """
         return len(self.targets)
 
     def __getitem__(self, index):
-        "Generates samples of data"
+        """
+        Generates samples of data
+        """
         # Load data and get label
         X = self.data[index]
         y = self.targets[index]
@@ -186,18 +182,23 @@ class ClassificationDataset(torch.utils.data.Dataset):
         return X, y.long()
 
 class UnsupervisedDataset(torch.utils.data.Dataset):
-    "Characterizes a unsupervised learning dataset for PyTorch"
+    """
+    Characterizes a unsupervised learning dataset for PyTorch
+    """
     def __init__(self, data, targets=None):
-        "Initialization"
         self.targets = targets
         self.data = data
 
     def __len__(self):
-        "Denotes the total number of samples"
+        """
+        Denotes the total number of samples
+        """
         return len(self.data)
 
     def __getitem__(self, index):
-        "Generates samples of data"
+        """
+        Generates samples of data
+        """
         # Load data
         X = self.data[index]
         return X    

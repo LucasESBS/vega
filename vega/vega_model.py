@@ -16,13 +16,17 @@ class VEGA(torch.nn.Module):
     def __init__(self, pathway_mask, positive_decoder=False, **kwargs):
         """ 
         Constructor for class VEGA (VAE Enhanced by Gene Annotations).
+
+        VEGA is a VAE-based model for inference of Gene Module Variables (GMVs) activities. It uses
+        a binary matrix initialized from a .gmt file to mask connection in a linear decoder in order
+        to provide interpretability over each latent variable of the model, providing an easy way to 
+        project data into the interpretable latent space and perform differential testing.
+
         Args:
-            pathway_mask (np.array): gene module mask
-            positive_decoder (bool): whether to constrain decoder to positive weights
-        kwargs:
-            dev (torch.device): using CPU or CUDA
-            beta (float): weight for KL-divergence
-            dropout (float): dropout rate in model
+            pathway_mask (np.array): Gene module mask.
+            positive_decoder (bool): Whether to constrain decoder to positive weights.
+            **kwargs: Arbitrary keyword arguments.
+
         """
         super(VEGA, self).__init__()
         self.pathway_mask = pathway_mask
@@ -33,7 +37,6 @@ class VEGA(torch.nn.Module):
         self.save_path = kwargs.get('path_model', "trained_vae.pt")
         self.dropout = kwargs.get('dropout', 0.2)
         self.pos_dec = positive_decoder
-        print(self.dropout)
         self.encoder = nn.Sequential(nn.Linear(self.n_genes, 800),
                                     nn.BatchNorm1d(800),
                                     nn.ReLU(),
@@ -57,12 +60,18 @@ class VEGA(torch.nn.Module):
     def encode(self, X):
         """ 
         Encode data in latent space.
+
+        Encoder function for VEGA model.
+
         Args:
             X (torch.tensor): input data
-        Return:
-            z (torch.tensor): data in latent space
-            mu (torch.tensor): mean of variational posterior
-            logvar (torch.tensor): log-variance of variational posterior
+
+        Returns:
+            (tuple): tuple containing:
+
+                z (torch.tensor): Data in latent space\n
+                mu (torch.tensor): Mean of variational posterior\n
+                logvar (torch.tensor): Log-variance of variational posterior
         """
         y = self.encoder(X)
         mu, logvar = self.mean(y), self.logvar(y)
@@ -72,22 +81,26 @@ class VEGA(torch.nn.Module):
     def decode(self, z):
         """ 
         Decode data from latent space.
+
+        Decoder function for VEGA model.
+
         Args:
-            z (torch.tensor): data embedded in latent space
-        Return:
-            X_rec (torch.tensor): decoded data
+            z (torch.tensor): Data embedded in latent space.
+        Returns:
+            torch.tensor: Decoded data.
         """
         X_rec = self.decoder(z)
         return X_rec
     
     def sample_latent(self, mu, logvar):
         """ 
-        Sample latent space with reparametrization trick. First convert to std, sample normal(0,1) and get Z.
+        Sample latent space with reparametrization trick. First convert to standard deviation, then sample from standard normal dsitribution and get latent vector.
+
         Args:
-            mu (torch.tensor): mean of variational posterior
-            logvar (torch.tensor): log-variance of variational posterior
-        Return:
-            eps (torch.tensor): sampled latent space
+            mu (torch.tensor): Mean of variational posterior.
+            logvar (torch.tensor): Log-variance of variational posterior.
+        Returns:
+            torch.tensor: Sampled latent space.
         """
         std = logvar.mul(0.5).exp_()
         eps = torch.FloatTensor(std.size()).normal_().to(self.dev)
@@ -96,11 +109,12 @@ class VEGA(torch.nn.Module):
 
     def to_latent(self, X):
         """
-        Same as encode, but only returns z (no mu and logvar).
+        Same as encode, but only returns $z$ (no mu and logvar).
+
         Args:
-            X (torch.tensor): input data
-        Return:
-            z (torch.tensor): embedded data in latent space
+            X (torch.tensor): Input data.
+        Returns:
+            torch.tensor: Embedded data in latent space.
         """
         y = self.encoder(X)
         mu, logvar = self.mean(y), self.logvar(y)
@@ -110,10 +124,11 @@ class VEGA(torch.nn.Module):
     def _average_latent(self, X):
         """
         Computes the average data vector in the latent space.
+
         Args:
-            X (torch.tensor): input data
-        Return:
-            mean_z (torch.tensor): mean latent vector
+            X (torch.tensor): Input data.
+        Returns:
+            torch.tensor: Mean latent vector.
         """
         z = self.to_latent(X)
         mean_z = z.mean(0)
@@ -121,17 +136,20 @@ class VEGA(torch.nn.Module):
 
     def bayesian_diff_exp(self, adata1, adata2, n_samples=2000, use_permutations=True, n_permutations=1000, random_seed=False):
         """ 
-        Run Bayesian differential expression in latent space.
-        Returns Bayes factor of all factors.
+        Run Bayesian differential testingin latent space.
+
+        Method based on scVI Bayesian differential expression procedure [Lopez, 2018]_. Compares activity of 
+        each latent variable in the latent space and computes Bayes factor for each of them.
+
         Args:
-            adata1 (Anndata): single-cell dataset of group 1
-            adata2 (Anndata): single-cell dataset of group 2
-            n_samples (int): number of samples to draw from the latent space
-            use_permutations (bool): whether to use permutations when computing the double integral
-            n_permutations (int): number of permutations for MC integral
-            random_seed (int): Seed for reproducibility
-        Return:
-            res (dict): Dictionary with results (Bayes Factor, Mean Absolute Difference)
+            adata1 (Anndata): Single-cell dataset of group 1.
+            adata2 (Anndata): Single-cell dataset of group 2.
+            n_samples (int): Number of samples to draw from the latent space.
+            use_permutations (bool): Whether to use permutations when computing the double integral.
+            n_permutations (int): Number of permutations for MC integral.
+            random_seed (int): Seed for reproducibility.
+        Returns:
+            dict: Dictionary with results.
         """
         self.eval()
         # Set seed for reproducibility
@@ -164,13 +182,14 @@ class VEGA(torch.nn.Module):
         """
         Use permutation to better estimate double integral (create more pair comparisons)
         Inspired by scVI (Lopez et al., 2018)
+
         Args:
-            arr1 (np.array): array with data of group 1
-            arr2 (np.array): array with data of group 2
-            n_perm (int): number of permutations
-        Return:
-            scaled1 (np.array): samples for group 1
-            scaled2 (np.array): samples for group 2
+            arr1 (np.array): array with data of group 1.
+            arr2 (np.array): array with data of group 2.
+            n_perm (int): number of permutations.
+        Returns:
+            np.array: Samples for group 1.
+            np.array: Samples for group 2.
         """
         u, v = (np.random.choice(arr1.shape[0], size=n_perm), np.random.choice(arr2.shape[0], size=n_perm))
         scaled1 = arr1[u]
@@ -180,12 +199,14 @@ class VEGA(torch.nn.Module):
     def forward(self, X):
         """
         Forward pass through full network.
+
         Args:
             X (torch.tensor): input data
-        Return:
-            X_rec (torch.Tensor): reconstructed data
-            mu (torch.tensor): mean of variational posterior
-            logvar (torch.tensor): log-variance of variational posterior
+        Returns:
+            tuple: Tuple containing:
+                X_rec (torch.tensor): reconstructed data \n
+                mu (torch.tensor): mean of variational posterior\n
+                logvar (torch.tensor): log-variance of variational posterior\n
         """
         z, mu, logvar = self.encode(X)
         X_rec = self.decode(z)
@@ -194,13 +215,14 @@ class VEGA(torch.nn.Module):
     def vae_loss(self, y_pred, y_true, mu, logvar):
         """ 
         Custom loss for VAE.
+
         Args:
-            y_pred (torch.tensor): reconstructed data
-            y_true (torch.tensor): real data
-            mu (torch.tensor): mean of variational posterior
-            logvar (torch.tensor): log-variance of variational posterior
+            y_pred (torch.tensor): Reconstructed data.
+            y_true (torch.tensor): Real data.
+            mu (torch.tensor): Mean of variational posterior.
+            logvar (torch.tensor): Log-variance of variational posterior.
         Return:
-            loss value for current batch
+            torch.tensor: Loss value for current batch.
         """
         kld = -0.5 * torch.sum(1. + logvar - mu.pow(2) - logvar.exp(), )
         mse = F.mse_loss(y_pred, y_true, reduction="sum")
@@ -209,16 +231,17 @@ class VEGA(torch.nn.Module):
     def train_model(self, train_loader, learning_rate, n_epochs, train_patience, test_patience, test_loader=False, save_model=True):
         """
         Method to train VEGA.
+
         Args:
-            train_loader (torch.DataLoader): loader with training data
-            learning_rate (float): learning rate for SGD
-            n_epochs (int): number of maximum epochs to train the model
-            train_patience (int): Early stopping patience for training loss
-            test_patience (int): Early stopping patience for test loss
-            test_loader (torch.DataLoader): If available, loader with test data
-            save_model (bool): If True, save model after training to path attribute of VEGA
-        Return:
-            epoch_hist (dict): Training history
+            train_loader (torch.DataLoader): Loader with training data.
+            learning_rate (float): Learning rate for SGD.
+            n_epochs (int): Number of maximum epochs to train the model.
+            train_patience (int): Early stopping patience for training loss.
+            test_patience (int): Early stopping patience for test loss.
+            test_loader (torch.DataLoader): If available, loader with test data.
+            save_model (bool): If True, save model after training to path attribute of VEGA.
+        Returns:
+            dict: Training history
         """
         epoch_hist = {}
         epoch_hist['train_loss'] = []
@@ -272,10 +295,11 @@ class VEGA(torch.nn.Module):
     def test_model(self, loader):
         """
         Test model on input loader.
+
         Args:
-            loader (torch.DataLoader): loader with test data
-        Return:
-            test_dict (dict): dictionary with test metrics
+            loader (torch.DataLoader): Loader with test data.
+        Returns:
+            dict: Dictionary with test metrics.
         """
         test_dict = {}
         loss = 0

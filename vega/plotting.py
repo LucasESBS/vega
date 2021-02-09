@@ -16,20 +16,21 @@ def volcano_plot(dfe_res,
                 save=False):
     """
     Plot Differential GMV results.
+
     Args:
-        dfe_res (dict): Results of VEGA differential GMV test
-        pathway_list (list): List with GMV names
-        sig_lvl (float): Absolute Bayes Factor cutoff
-        metric_lvl (float): Mean Absolute Difference cutoff
-        to_plot (dict): dictionary of {GMV:alias} for labelling particular GMVs. If None, all significant GMVs are displayed.
+        dfe_res (dict): Results of VEGA differential GMV test.
+        pathway_list (list): List with GMV names.
+        sig_lvl (float): Absolute Bayes Factor cutoff.
+        metric_lvl (float): Mean Absolute Difference cutoff.
+        to_plot (dict): Dictionary of {GMV:alias} for labelling particular GMVs. If None, all significant GMVs are displayed.
         metric (str): y-axis metric (MAD)
-    kwargs:
-        figsize (list): size of figure
-        s (float): dot size
-        fontsize (int): text size for axis
-        textsize (int): text size for GMV name display
-        title (str): title for plot
-        save (str): path to save figure as pdf
+        **kwargs: Other keyword arguments.
+            figsize (list): size of figure\n
+            s (float): dot size\n
+            fontsize (int): text size for axis\n
+            textsize (int): text size for GMV name display\n
+            title (str): title for plot\n
+            save (str): path to save figure as pdf\n
     """ 
     plt.figure(figsize=figsize)
     xlim_v = np.abs(dfe_res['bayes_factor']).max() + 0.5

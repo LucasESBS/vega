@@ -50,15 +50,17 @@ class EarlyStopping:
 class AnnealingVAELoss:
     def __init__(self, anneal_start, anneal_time, beta_start):
         """ Monotonic annealing of beta-VAE loss. From 0 to 1.
-        
         If you want to use a standard beta-VAE loss, simply set beta_start !=0 and don't call
-        update_beta()"""
+        update_beta().
+        """
         self.anneal_start = anneal_start
         self.anneal_time = anneal_time
         self.beta = beta_start
 
     def __call__(self, y_pred, y_true, mu, logvar):
-        """ Compute loss."""
+        """ 
+        Compute loss.
+        """
         # Compute VAE Loss as MSE() + beta*KL()
         rec = F.mse_loss(y_pred, y_true, reduction='sum')
         kld = -0.5 * torch.sum(1. + logvar - mu.pow(2) - logvar.exp(), )

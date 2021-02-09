@@ -4,4 +4,4 @@ build/
 dist/
 *.egg-info/
 /tutorials/train_pbmc.h5ad
-
+/docs/build/
