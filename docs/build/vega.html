@@ -1,0 +1,410 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>VEGA model &mdash; VEGA 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="utils functions" href="utils.html" />
+    <link rel="prev" title="Welcome to vega’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> VEGA
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">     vega</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">     utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">     plotting</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">VEGA</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>VEGA model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/vega.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="vega-model">
+<h1>VEGA model<a class="headerlink" href="#vega-model" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="vega.VEGA">
+<em class="property">class </em><code class="sig-prename descclassname">vega.</code><code class="sig-name descname">VEGA</code><span class="sig-paren">(</span><em class="sig-param">pathway_mask</em>, <em class="sig-param">positive_decoder=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for class VEGA (VAE Enhanced by Gene Annotations).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pathway_mask</strong> (<em>np.array</em>) – gene module mask</p></li>
+<li><p><strong>positive_decoder</strong> (<em>bool</em>) – whether to constrain decoder to positive weights</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>kwargs:</dt><dd><p>dev (torch.device): using CPU or CUDA
+beta (float): weight for KL-divergence
+dropout (float): dropout rate in model</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="vega.VEGA.encode">
+<code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">X</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode data in latent space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>X</strong> (<em>torch.tensor</em>) – input data</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>data in latent space
+mu (torch.tensor): mean of variational posterior
+logvar (torch.tensor): log-variance of variational posterior</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>z (torch.tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.decode">
+<code class="sig-name descname">decode</code><span class="sig-paren">(</span><em class="sig-param">z</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decode data from latent space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>z</strong> (<em>torch.tensor</em>) – data embedded in latent space</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>decoded data</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>X_rec (torch.tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.sample_latent">
+<code class="sig-name descname">sample_latent</code><span class="sig-paren">(</span><em class="sig-param">mu</em>, <em class="sig-param">logvar</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.sample_latent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.sample_latent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample latent space with reparametrization trick. First convert to std, sample normal(0,1) and get Z.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu</strong> (<em>torch.tensor</em>) – mean of variational posterior</p></li>
+<li><p><strong>logvar</strong> (<em>torch.tensor</em>) – log-variance of variational posterior</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>sampled latent space</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>eps (torch.tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.to_latent">
+<code class="sig-name descname">to_latent</code><span class="sig-paren">(</span><em class="sig-param">X</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.to_latent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.to_latent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as encode, but only returns z (no mu and logvar).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>X</strong> (<em>torch.tensor</em>) – input data</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>embedded data in latent space</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>z (torch.tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.bayesian_diff_exp">
+<code class="sig-name descname">bayesian_diff_exp</code><span class="sig-paren">(</span><em class="sig-param">adata1</em>, <em class="sig-param">adata2</em>, <em class="sig-param">n_samples=2000</em>, <em class="sig-param">use_permutations=True</em>, <em class="sig-param">n_permutations=1000</em>, <em class="sig-param">random_seed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.bayesian_diff_exp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.bayesian_diff_exp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run Bayesian differential expression in latent space.
+Returns Bayes factor of all factors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adata1</strong> (<em>Anndata</em>) – single-cell dataset of group 1</p></li>
+<li><p><strong>adata2</strong> (<em>Anndata</em>) – single-cell dataset of group 2</p></li>
+<li><p><strong>n_samples</strong> (<em>int</em>) – number of samples to draw from the latent space</p></li>
+<li><p><strong>use_permutations</strong> (<em>bool</em>) – whether to use permutations when computing the double integral</p></li>
+<li><p><strong>n_permutations</strong> (<em>int</em>) – number of permutations for MC integral</p></li>
+<li><p><strong>random_seed</strong> (<em>int</em>) – Seed for reproducibility</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary with results (Bayes Factor, Mean Absolute Difference)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>res (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">X</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward pass through full network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>X</strong> (<em>torch.tensor</em>) – input data</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>reconstructed data
+mu (torch.tensor): mean of variational posterior
+logvar (torch.tensor): log-variance of variational posterior</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>X_rec (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.vae_loss">
+<code class="sig-name descname">vae_loss</code><span class="sig-paren">(</span><em class="sig-param">y_pred</em>, <em class="sig-param">y_true</em>, <em class="sig-param">mu</em>, <em class="sig-param">logvar</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.vae_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.vae_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Custom loss for VAE.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_pred</strong> (<em>torch.tensor</em>) – reconstructed data</p></li>
+<li><p><strong>y_true</strong> (<em>torch.tensor</em>) – real data</p></li>
+<li><p><strong>mu</strong> (<em>torch.tensor</em>) – mean of variational posterior</p></li>
+<li><p><strong>logvar</strong> (<em>torch.tensor</em>) – log-variance of variational posterior</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>loss value for current batch</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.train_model">
+<code class="sig-name descname">train_model</code><span class="sig-paren">(</span><em class="sig-param">train_loader</em>, <em class="sig-param">learning_rate</em>, <em class="sig-param">n_epochs</em>, <em class="sig-param">train_patience</em>, <em class="sig-param">test_patience</em>, <em class="sig-param">test_loader=False</em>, <em class="sig-param">save_model=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.train_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.train_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to train VEGA.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_loader</strong> (<em>torch.DataLoader</em>) – loader with training data</p></li>
+<li><p><strong>learning_rate</strong> (<em>float</em>) – learning rate for SGD</p></li>
+<li><p><strong>n_epochs</strong> (<em>int</em>) – number of maximum epochs to train the model</p></li>
+<li><p><strong>train_patience</strong> (<em>int</em>) – Early stopping patience for training loss</p></li>
+<li><p><strong>test_patience</strong> (<em>int</em>) – Early stopping patience for test loss</p></li>
+<li><p><strong>test_loader</strong> (<em>torch.DataLoader</em>) – If available, loader with test data</p></li>
+<li><p><strong>save_model</strong> (<em>bool</em>) – If True, save model after training to path attribute of VEGA</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Training history</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>epoch_hist (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.VEGA.test_model">
+<code class="sig-name descname">test_model</code><span class="sig-paren">(</span><em class="sig-param">loader</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vega/vega_model.html#VEGA.test_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.VEGA.test_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test model on input loader.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>loader</strong> (<em>torch.DataLoader</em>) – loader with test data</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dictionary with test metrics</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>test_dict (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="utils.html" class="btn btn-neutral float-right" title="utils functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to vega’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Lucas Seninge, Ioannis Anastopoulos.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

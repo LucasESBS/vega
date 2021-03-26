@@ -1,0 +1,516 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>vega.vega_model &mdash; VEGA 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> VEGA
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">VEGA</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>vega.vega_model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for vega.vega_model</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Module for VEGA</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">optim</span>
+<span class="kn">from</span> <span class="nn">.customized_linear</span> <span class="kn">import</span> <span class="n">CustomizedLinear</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.learning_utils</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">scanpy</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
+
+<div class="viewcode-block" id="VEGA"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA">[docs]</a><span class="k">class</span> <span class="nc">VEGA</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pathway_mask</span><span class="p">,</span> <span class="n">positive_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Constructor for class VEGA (VAE Enhanced by Gene Annotations).</span>
+
+<span class="sd">        VEGA is a VAE-based model for inference of Gene Module Variables (GMVs) activities. It uses</span>
+<span class="sd">        a binary matrix initialized from a .gmt file to mask connection in a linear decoder in order</span>
+<span class="sd">        to provide interpretability over each latent variable of the model, providing an easy way to </span>
+<span class="sd">        project data into the interpretable latent space and perform differential testing.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pathway_mask (np.array): Gene module mask.</span>
+<span class="sd">            positive_decoder (bool): Whether to constrain decoder to positive weights.</span>
+<span class="sd">            **kwargs: Arbitrary keyword arguments.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VEGA</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pathway_mask</span> <span class="o">=</span> <span class="n">pathway_mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_pathways</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pathway_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_genes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pathway_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dev</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;device&#39;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;cpu&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;path_model&#39;</span><span class="p">,</span> <span class="s2">&quot;trained_vae.pt&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos_dec</span> <span class="o">=</span> <span class="n">positive_decoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_genes</span><span class="p">,</span> <span class="mi">800</span><span class="p">),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="mi">800</span><span class="p">),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span><span class="mi">800</span><span class="p">),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="mi">800</span><span class="p">),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pathways</span><span class="p">),</span> 
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logvar</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pathways</span><span class="p">),</span> 
+                                    <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">CustomizedLinear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pathway_mask</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="c1"># Constraining decoder or not</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_dec</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Constraining decoder to positive weights&#39;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">reset_params_pos</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">mask</span>        
+
+
+<div class="viewcode-block" id="VEGA.encode"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Encode data in latent space.</span>
+
+<span class="sd">        Encoder function for VEGA model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (torch.tensor): input data</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple): tuple containing:</span>
+
+<span class="sd">                z (torch.tensor): Data in latent space\n</span>
+<span class="sd">                mu (torch.tensor): Mean of variational posterior\n</span>
+<span class="sd">                logvar (torch.tensor): Log-variance of variational posterior</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">logvar</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_latent</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">z</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span></div>
+    
+<div class="viewcode-block" id="VEGA.decode"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Decode data from latent space.</span>
+
+<span class="sd">        Decoder function for VEGA model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            z (torch.tensor): Data embedded in latent space.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor: Decoded data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">X_rec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">X_rec</span></div>
+    
+<div class="viewcode-block" id="VEGA.sample_latent"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.sample_latent">[docs]</a>    <span class="k">def</span> <span class="nf">sample_latent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Sample latent space with reparametrization trick. First convert to standard deviation, then sample from standard normal dsitribution and get latent vector.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mu (torch.tensor): Mean of variational posterior.</span>
+<span class="sd">            logvar (torch.tensor): Log-variance of variational posterior.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor: Sampled latent space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">logvar</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">exp_</span><span class="p">()</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">std</span><span class="o">.</span><span class="n">size</span><span class="p">())</span><span class="o">.</span><span class="n">normal_</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dev</span><span class="p">)</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="n">std</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">eps</span></div>
+
+<div class="viewcode-block" id="VEGA.to_latent"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.to_latent">[docs]</a>    <span class="k">def</span> <span class="nf">to_latent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Same as encode, but only returns $z$ (no mu and logvar).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (torch.tensor): Input data.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor: Embedded data in latent space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">logvar</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_latent</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">z</span></div>
+ 
+    <span class="k">def</span> <span class="nf">_average_latent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the average data vector in the latent space.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (torch.tensor): Input data.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.tensor: Mean latent vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_latent</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">mean_z</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mean_z</span>
+
+<div class="viewcode-block" id="VEGA.bayesian_diff_exp"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.bayesian_diff_exp">[docs]</a>    <span class="k">def</span> <span class="nf">bayesian_diff_exp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adata1</span><span class="p">,</span> <span class="n">adata2</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">use_permutations</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_permutations</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Run Bayesian differential testingin latent space.</span>
+
+<span class="sd">        Method based on scVI Bayesian differential expression procedure [Lopez, 2018]_. Compares activity of </span>
+<span class="sd">        each latent variable in the latent space and computes Bayes factor for each of them.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            adata1 (Anndata): Single-cell dataset of group 1.</span>
+<span class="sd">            adata2 (Anndata): Single-cell dataset of group 2.</span>
+<span class="sd">            n_samples (int): Number of samples to draw from the latent space.</span>
+<span class="sd">            use_permutations (bool): Whether to use permutations when computing the double integral.</span>
+<span class="sd">            n_permutations (int): Number of permutations for MC integral.</span>
+<span class="sd">            random_seed (int): Seed for reproducibility.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Dictionary with results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="c1"># Set seed for reproducibility</span>
+        <span class="k">if</span> <span class="n">random_seed</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-12</span>
+        <span class="c1"># Sample cell from each condition</span>
+        <span class="n">idx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">adata1</span><span class="p">)),</span> <span class="n">n_samples</span><span class="p">)</span>
+        <span class="n">idx2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">adata2</span><span class="p">)),</span> <span class="n">n_samples</span><span class="p">)</span>
+        <span class="c1"># To latent</span>
+        <span class="n">z1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_latent</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">adata1</span><span class="p">[</span><span class="n">idx1</span><span class="p">,:]</span><span class="o">.</span><span class="n">X</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">z2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_latent</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">adata2</span><span class="p">[</span><span class="n">idx2</span><span class="p">,:]</span><span class="o">.</span><span class="n">X</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="c1"># Compare samples by using number of permutations - if 0, just pairwise comparison</span>
+        <span class="c1"># This estimates the double integral in the posterior of the hypothesis</span>
+        <span class="k">if</span> <span class="n">use_permutations</span><span class="p">:</span>
+            <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scale_sampling</span><span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">,</span> <span class="n">n_perm</span><span class="o">=</span><span class="n">n_permutations</span><span class="p">)</span>
+        <span class="n">p_h1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">z1</span> <span class="o">&gt;</span> <span class="n">z2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">p_h2</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p_h1</span>
+        <span class="n">mad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">z1</span> <span class="o">-</span> <span class="n">z2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">bf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p_h1</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p_h2</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> 
+        <span class="c1"># Wrap results</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;p_h1&#39;</span><span class="p">:</span><span class="n">p_h1</span><span class="p">,</span>
+                <span class="s1">&#39;p_h2&#39;</span><span class="p">:</span><span class="n">p_h2</span><span class="p">,</span>
+                <span class="s1">&#39;bayes_factor&#39;</span><span class="p">:</span> <span class="n">bf</span><span class="p">,</span>
+                <span class="s1">&#39;mad&#39;</span><span class="p">:</span><span class="n">mad</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+    <span class="k">def</span> <span class="nf">_scale_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr1</span><span class="p">,</span> <span class="n">arr2</span><span class="p">,</span> <span class="n">n_perm</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use permutation to better estimate double integral (create more pair comparisons)</span>
+<span class="sd">        Inspired by scVI (Lopez et al., 2018)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            arr1 (np.array): array with data of group 1.</span>
+<span class="sd">            arr2 (np.array): array with data of group 2.</span>
+<span class="sd">            n_perm (int): number of permutations.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            np.array: Samples for group 1.</span>
+<span class="sd">            np.array: Samples for group 2.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">arr1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">n_perm</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">arr2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">n_perm</span><span class="p">))</span>
+        <span class="n">scaled1</span> <span class="o">=</span> <span class="n">arr1</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+        <span class="n">scaled2</span> <span class="o">=</span> <span class="n">arr2</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">scaled1</span><span class="p">,</span> <span class="n">scaled2</span>
+
+<div class="viewcode-block" id="VEGA.forward"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass through full network.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (torch.tensor): input data</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Tuple containing:</span>
+<span class="sd">                X_rec (torch.tensor): reconstructed data \n</span>
+<span class="sd">                mu (torch.tensor): mean of variational posterior\n</span>
+<span class="sd">                logvar (torch.tensor): log-variance of variational posterior\n</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">X_rec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">X_rec</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span></div>
+
+<div class="viewcode-block" id="VEGA.vae_loss"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.vae_loss">[docs]</a>    <span class="k">def</span> <span class="nf">vae_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Custom loss for VAE.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_pred (torch.tensor): Reconstructed data.</span>
+<span class="sd">            y_true (torch.tensor): Real data.</span>
+<span class="sd">            mu (torch.tensor): Mean of variational posterior.</span>
+<span class="sd">            logvar (torch.tensor): Log-variance of variational posterior.</span>
+<span class="sd">        Return:</span>
+<span class="sd">            torch.tensor: Loss value for current batch.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kld</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">(),</span> <span class="p">)</span>
+        <span class="n">mse</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mse</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">*</span><span class="n">kld</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="VEGA.train_model"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.train_model">[docs]</a>    <span class="k">def</span> <span class="nf">train_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">,</span> <span class="n">n_epochs</span><span class="p">,</span> <span class="n">train_patience</span><span class="p">,</span> <span class="n">test_patience</span><span class="p">,</span> <span class="n">test_loader</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_model</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to train VEGA.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            train_loader (torch.DataLoader): Loader with training data.</span>
+<span class="sd">            learning_rate (float): Learning rate for SGD.</span>
+<span class="sd">            n_epochs (int): Number of maximum epochs to train the model.</span>
+<span class="sd">            train_patience (int): Early stopping patience for training loss.</span>
+<span class="sd">            test_patience (int): Early stopping patience for test loss.</span>
+<span class="sd">            test_loader (torch.DataLoader): If available, loader with test data.</span>
+<span class="sd">            save_model (bool): If True, save model after training to path attribute of VEGA.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Training history</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">epoch_hist</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">epoch_hist</span><span class="p">[</span><span class="s1">&#39;train_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">epoch_hist</span><span class="p">[</span><span class="s1">&#39;valid_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">5e-4</span><span class="p">)</span>
+        <span class="n">train_ES</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">patience</span><span class="o">=</span><span class="n">train_patience</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;train&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">test_loader</span><span class="p">:</span>
+            <span class="n">valid_ES</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">patience</span><span class="o">=</span><span class="n">test_patience</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">)</span>
+        <span class="n">clipper</span> <span class="o">=</span> <span class="n">WeightClipper</span><span class="p">(</span><span class="n">frequency</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Train</span>
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">):</span>
+            <span class="n">loss_value</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">x_train</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+                <span class="n">x_train</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dev</span><span class="p">)</span>
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+                <span class="n">x_rec</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vae_loss</span><span class="p">(</span><span class="n">x_rec</span><span class="p">,</span> <span class="n">x_train</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+                <span class="n">loss_value</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_dec</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">clipper</span><span class="p">)</span>
+            <span class="c1"># Get epoch loss</span>
+            <span class="n">epoch_loss</span> <span class="o">=</span> <span class="n">loss_value</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span> <span class="o">*</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+            <span class="n">epoch_hist</span><span class="p">[</span><span class="s1">&#39;train_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">epoch_loss</span><span class="p">)</span>
+            <span class="n">train_ES</span><span class="p">(</span><span class="n">epoch_loss</span><span class="p">)</span>
+            <span class="c1"># Eval</span>
+            <span class="k">if</span> <span class="n">test_loader</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="n">test_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_model</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+                <span class="n">test_loss</span> <span class="o">=</span> <span class="n">test_dict</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+                <span class="n">epoch_hist</span><span class="p">[</span><span class="s1">&#39;valid_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)</span>
+                <span class="n">valid_ES</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Epoch </span><span class="si">%d</span><span class="s1">] | loss: </span><span class="si">%.3f</span><span class="s1"> | test_loss: </span><span class="si">%.3f</span><span class="s1"> |&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">epoch_loss</span><span class="p">,</span> <span class="n">test_loss</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">valid_ES</span><span class="o">.</span><span class="n">early_stop</span> <span class="ow">or</span> <span class="n">train_ES</span><span class="o">.</span><span class="n">early_stop</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Epoch </span><span class="si">%d</span><span class="s1">] Early stopping&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Epoch </span><span class="si">%d</span><span class="s1">] | loss: </span><span class="si">%.3f</span><span class="s1"> |&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">epoch_loss</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">train_ES</span><span class="o">.</span><span class="n">early_stop</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[Epoch </span><span class="si">%d</span><span class="s1">] Early stopping&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">break</span>
+        <span class="c1"># Save model</span>
+        <span class="k">if</span> <span class="n">save_model</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving model to ...&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">epoch_hist</span></div>
+
+<div class="viewcode-block" id="VEGA.test_model"><a class="viewcode-back" href="../../api/vega.html#vega.VEGA.test_model">[docs]</a>    <span class="k">def</span> <span class="nf">test_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test model on input loader.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            loader (torch.DataLoader): Loader with test data.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Dictionary with test metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">test_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">loss_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vae_loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dev</span><span class="p">)</span>
+                <span class="n">reconstruct_X</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                <span class="n">loss</span> <span class="o">+=</span> <span class="n">loss_func</span><span class="p">(</span><span class="n">reconstruct_X</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">test_dict</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">/</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span><span class="o">*</span><span class="n">loader</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">test_dict</span></div></div>
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Lucas Seninge, Ioannis Anastopoulos.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

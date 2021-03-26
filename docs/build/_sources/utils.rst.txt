@@ -1,0 +1,5 @@
+utils functions
+===============
+
+.. automodule:: vega.utils
+    :members:

@@ -1,0 +1,404 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>vega.utils &mdash; VEGA 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> VEGA
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">VEGA</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>vega.utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for vega.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scanpy</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
+
+
+<div class="viewcode-block" id="dict_to_gmt"><a class="viewcode-back" href="../../api/utils.html#vega.utils.dict_to_gmt">[docs]</a><span class="k">def</span> <span class="nf">dict_to_gmt</span><span class="p">(</span><span class="n">dict_obj</span><span class="p">,</span> <span class="n">path_gmt</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">second_col</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    Write dictionary to gmt format.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dict_obj (dict): Dictionary with gene_module:[members].</span>
+<span class="sd">        path_gmt (str): Path to save gmt file.</span>
+<span class="sd">        sep (str): Separator to use when writing file.</span>
+<span class="sd">        second_col (bool): Whether to duplicate the first column.        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_gmt</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">dict_obj</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">second_col</span><span class="p">:</span>
+                <span class="n">to_write</span> <span class="o">=</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span><span class="s1">&#39;SECOND_COL&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">to_write</span> <span class="o">=</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">to_write</span><span class="p">)</span>
+    <span class="k">return</span></div>
+         
+
+<div class="viewcode-block" id="read_gmt"><a class="viewcode-back" href="../../api/utils.html#vega.utils.read_gmt">[docs]</a><span class="k">def</span> <span class="nf">read_gmt</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">min_g</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_g</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read GMT file into dictionary of gene_module:genes.\n</span>
+<span class="sd">    min_g and max_g are optional gene set size filters.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fname (str): Path to gmt file</span>
+<span class="sd">        sep (str): Separator used to read gmt file.</span>
+<span class="sd">        min_g (int): Minimum of gene members in gene module.</span>
+<span class="sd">        max_g (int): Maximum of gene members in gene module.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        OrderedDict: Dictionary of gene_module:genes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dict_pathway</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">min_g</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span> <span class="o">&lt;=</span> <span class="n">max_g</span><span class="p">:</span>
+                <span class="n">dict_pathway</span><span class="p">[</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">dict_pathway</span></div>
+
+<div class="viewcode-block" id="create_pathway_mask"><a class="viewcode-back" href="../../api/utils.html#vega.utils.create_pathway_mask">[docs]</a><span class="k">def</span> <span class="nf">create_pathway_mask</span><span class="p">(</span><span class="n">feature_list</span><span class="p">,</span> <span class="n">dict_pathway</span><span class="p">,</span> <span class="n">add_missing</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">fully_connected</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">to_tensor</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a mask of shape [genes,pathways] where (i,j) = 1 if gene i is in pathway j, 0 else.</span>
+
+<span class="sd">    Expects a list of genes and pathway dict.</span>
+<span class="sd">    Note: dict_pathway should be an Ordered dict so that the ordering can be later interpreted.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        feature_list (list): List of genes in single-cell dataset.</span>
+<span class="sd">        dict_pathway (OrderedDict): Dictionary of gene_module:genes.</span>
+<span class="sd">        add_missing (int): Number of additional, fully connected nodes.</span>
+<span class="sd">        fully_connected (bool): Whether to fully connect additional nodes or not.</span>
+<span class="sd">        to_tensor (False): Whether to convert mask to tensor or not.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.tensor/np.array: Gene module mask.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dict_pathway</span><span class="p">)</span> <span class="o">==</span> <span class="n">OrderedDict</span>
+    <span class="n">p_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">feature_list</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dict_pathway</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dict_pathway</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">feature_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">dict_pathway</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+                <span class="n">p_mask</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+    <span class="k">if</span> <span class="n">add_missing</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">add_missing</span><span class="p">)</span><span class="o">==</span><span class="nb">bool</span> <span class="k">else</span> <span class="n">add_missing</span>
+        <span class="c1"># Get non connected genes</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fully_connected</span><span class="p">:</span>
+            <span class="n">idx_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">p_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">n</span><span class="p">))</span>
+            <span class="n">vec</span><span class="p">[</span><span class="n">idx_0</span><span class="p">,:]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">p_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">p_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">p_mask</span><span class="p">,</span> <span class="n">vec</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">to_tensor</span><span class="p">:</span>
+        <span class="n">p_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">p_mask</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p_mask</span></div>
+
+<div class="viewcode-block" id="prepare_anndata"><a class="viewcode-back" href="../../api/utils.html#vega.utils.prepare_anndata">[docs]</a><span class="k">def</span> <span class="nf">prepare_anndata</span><span class="p">(</span><span class="n">anndata</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load Anndata object into pytorch data loader.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        anndata (AnnData): Scanpy Anndata object.</span>
+<span class="sd">        batch_size (int): Cells per batch.</span>
+<span class="sd">        shuffle (bool): Whether to shuffle data or not.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.DataLoader: Dataloader containing the data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Add shuffling here</span>
+    <span class="k">if</span> <span class="n">sparse</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">anndata</span><span class="o">.</span><span class="n">X</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">anndata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">A</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">anndata</span><span class="o">.</span><span class="n">X</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">my_dataloader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">my_dataloader</span></div>
+
+<div class="viewcode-block" id="balance_populations"><a class="viewcode-back" href="../../api/utils.html#vega.utils.balance_populations">[docs]</a><span class="k">def</span> <span class="nf">balance_populations</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">ct_key</span><span class="o">=</span><span class="s1">&#39;cell_type&#39;</span><span class="p">,</span> <span class="n">condition_key</span><span class="o">=</span><span class="s1">&#39;condition&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    Balance cell population within condition for unbias sampling and delta estimation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata (Anndata): Scanpy single-cell object.</span>
+<span class="sd">        ct_key (str): Anndata.obs column name with cell types.</span>
+<span class="sd">        condition_key (str): Anndata.obs column name with conditions.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Anndata: Scanpy single-cell object with balanced populations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ct_names</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">ct_key</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="n">ct_counts</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">ct_key</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+    <span class="n">max_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ct_counts</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">condition</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ct</span> <span class="ow">in</span> <span class="n">ct_names</span><span class="p">:</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">copy</span><span class="p">()[</span><span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">ct_key</span><span class="p">]</span> <span class="o">==</span> <span class="n">ct</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tmp</span><span class="p">)),</span> <span class="n">max_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sparse</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">X</span><span class="p">):</span>
+            <span class="n">tmp_X</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">A</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp_X</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_X</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">ct</span><span class="p">,</span> <span class="n">max_val</span><span class="p">))</span>
+        <span class="n">condition</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">condition_key</span><span class="p">]),</span> <span class="n">max_val</span><span class="p">))</span>
+    <span class="n">balanced_adata</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">AnnData</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="n">balanced_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">ct_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+    <span class="n">balanced_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">condition_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">balanced_adata</span></div>
+
+
+<div class="viewcode-block" id="preprocess_adata"><a class="viewcode-back" href="../../api/utils.html#vega.utils.preprocess_adata">[docs]</a><span class="k">def</span> <span class="nf">preprocess_adata</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">n_top_genes</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple (default) Scanpy preprocessing function before autoencoders.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata (Anndata): Scanpy single-cell object.</span>
+<span class="sd">        n_top_genes (int): Number of highly variable genes to retain.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Anndata: Preprocessed Anndata object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">filter_cells</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">min_genes</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+    <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">filter_genes</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">min_cells</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">normalize_total</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">target_sum</span><span class="o">=</span><span class="mf">1e4</span><span class="p">)</span>
+    <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">adata</span><span class="p">)</span>
+    <span class="n">sc</span><span class="o">.</span><span class="n">pp</span><span class="o">.</span><span class="n">highly_variable_genes</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">n_top_genes</span><span class="o">=</span><span class="n">n_top_genes</span><span class="p">)</span>
+    <span class="n">adata</span><span class="o">.</span><span class="n">raw</span> <span class="o">=</span> <span class="n">adata</span>
+    <span class="n">adata</span> <span class="o">=</span> <span class="n">adata</span><span class="p">[:,</span> <span class="n">adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">highly_variable</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">adata</span></div>
+
+ 
+<div class="viewcode-block" id="ClassificationDataset"><a class="viewcode-back" href="../../api/utils.html#vega.utils.ClassificationDataset">[docs]</a><span class="k">class</span> <span class="nc">ClassificationDataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Characterizes a classification dataset for PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="ClassificationDataset.__len__"><a class="viewcode-back" href="../../api/utils.html#vega.utils.ClassificationDataset.__len__">[docs]</a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Denotes the total number of samples</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClassificationDataset.__getitem__"><a class="viewcode-back" href="../../api/utils.html#vega.utils.ClassificationDataset.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates samples of data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Load data and get label</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">long</span><span class="p">()</span></div></div>
+
+<div class="viewcode-block" id="UnsupervisedDataset"><a class="viewcode-back" href="../../api/utils.html#vega.utils.UnsupervisedDataset">[docs]</a><span class="k">class</span> <span class="nc">UnsupervisedDataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Characterizes a unsupervised learning dataset for PyTorch</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="UnsupervisedDataset.__len__"><a class="viewcode-back" href="../../api/utils.html#vega.utils.UnsupervisedDataset.__len__">[docs]</a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Denotes the total number of samples</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="UnsupervisedDataset.__getitem__"><a class="viewcode-back" href="../../api/utils.html#vega.utils.UnsupervisedDataset.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates samples of data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Load data</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">X</span>    </div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Lucas Seninge, Ioannis Anastopoulos.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

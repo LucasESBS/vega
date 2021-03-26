@@ -1,0 +1,17 @@
+LICENSE
+README.md
+requirements.txt
+setup.py
+VEGA_LucaSC.egg-info/PKG-INFO
+VEGA_LucaSC.egg-info/SOURCES.txt
+VEGA_LucaSC.egg-info/dependency_links.txt
+VEGA_LucaSC.egg-info/requires.txt
+VEGA_LucaSC.egg-info/top_level.txt
+vega/__init__.py
+vega/customized_linear.py
+vega/learning_utils.py
+vega/plotting.py
+vega/utils.py
+vega/vega_model.py
+vega/data/__init__.py
+vega/data/_pbmc_ifn.py

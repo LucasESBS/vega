@@ -1,14 +1,161 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
-Customized Linear from Uchida Takumi with modifications 
+Custom modules and layers for VEGA.
+
+Acknowledgements:
+Customized Linear from Uchida Takumi with modifications.
 https://github.com/uchida-takumi/CustomizedLinear/blob/master/CustomizedLinear.py
-This code base on https://pytorch.org/docs/stable/notes/extending.html
+Masked decoder based on LinearDecoderSCVI.
+https://github.com/YosefLab/scvi-tools/blob/8f5a9cc362325abbb7be1e07f9523cfcf7e55ec0/scvi/core/modules/_base/__init__.py  
 """
+
 import math
+import numpy
+from typing import Iterable, List
 import torch
 import torch.nn as nn
+from scvi.nn import FCLayers, one_hot
 
+
+class DecoderVEGA(nn.Module):
+    """
+    Masked linear decoder for VEGA.
+    """
+    def __init__(self, 
+                mask,
+                n_cat_list: Iterable[int] = None,
+                n_continuous_cov: int = 0,
+                use_batch_norm: bool = False,
+                use_layer_norm: bool = False,
+                bias: bool = False
+                ):
+        super(DecoderVEGA, self).__init__()
+        self.n_input = mask.shape[1]
+        self.n_output = mask.shape[0]
+        # Mean and dropout decoder - dropout is fully connected
+        self.px_scale = SparseLayer(
+            mask=mask,
+            n_cat_list=n_cat_list,
+            n_continuous_cov = n_continuous_cov,
+            use_batch_norm=use_batch_norm,
+            use_layer_norm=use_layer_norm,
+            bias=bias,
+            dropout_rate=0)
+        self.px_dropout = SparseLayer(
+            mask=mask,
+            n_cat_list=n_cat_list,
+            n_continuous_cov = n_continuous_cov,
+            use_batch_norm=use_batch_norm,
+            use_layer_norm=use_layer_norm,
+            bias=bias,
+            dropout_rate=0)
+
+    def forward(self, dispersion: str, z: torch.Tensor, library: torch.Tensor, *cat_list: int):
+        """ Forward pass through VEGA's decoder """
+        raw_px_scale = self.px_scale(z, *cat_list)
+        px_scale = torch.softmax(raw_px_scale, dim=-1)
+        px_dropout = self.px_dropout(z, *cat_list)
+        px_rate = torch.exp(library) * px_scale
+        px_r = None
+
+        return px_scale, px_r, px_rate, px_dropout
+    
+class SparseLayer(nn.Module):
+    """
+    Sparse Layer class. Inspired by SCVI 'FCLayers' but constrained to 1 layer.
+    
+    Parameters:
+    -----------
+    """
+    def __init__(self,
+                mask: numpy.ndarray,
+                n_cat_list: Iterable[int] = None,
+                n_continuous_cov: int = 0,
+                use_activation: bool = False,
+                use_batch_norm: bool = False,
+                use_layer_norm: bool = False,
+                bias: bool = True,
+                dropout_rate: float = 0.1,
+                activation_fn: nn.Module = None
+                ):
+        # Initialize custom sparse layer
+        super().__init__()
+        if n_cat_list is not None:
+            # n_cat = 1 will be ignored
+            self.n_cat_list = [n_cat if n_cat > 1 else 0 for n_cat in n_cat_list]
+        else:
+            self.n_cat_list = []
+        self.n_continuous_cov = n_continuous_cov
+        self.cat_dim = sum(self.n_cat_list)
+        mask_with_cov = numpy.vstack((mask, numpy.ones((self.n_continuous_cov+self.cat_dim, mask.shape[1]))))
+        self.sparse_layer = nn.Sequential(
+                                    CustomizedLinear(mask_with_cov),
+                                    nn.BatchNorm1d(n_out, momentum=0.01, eps=0.001)
+                                    if use_batch_norm else None,
+                                    nn.LayerNorm(n_out, elementwise_affine=False)
+                                    if use_layer_norm
+                                    else None,
+                                    activation_fn() if use_activation else None,
+                                    nn.Dropout(p=dropout_rate) if dropout_rate > 0 else None
+                                    )
+    def forward(self, x: torch.Tensor, *cat_list: int):
+        """
+        Forward computation on x for sparse layer.
+
+        Parameters
+        ----------
+        x
+            tensor of values with shape ``(n_in,)``
+        cat_list
+            list of category membership(s) for this sample
+        x: torch.Tensor
+        Returns
+        -------
+        py:class:`torch.Tensor`
+            tensor of shape ``(n_out,)``
+
+        """
+        one_hot_cat_list = []  # for generality in this list many indices useless.
+
+        if len(self.n_cat_list) > len(cat_list):
+            raise ValueError(
+                "nb. categorical args provided doesn't match init. params."
+            )
+        for n_cat, cat in zip(self.n_cat_list, cat_list):
+            if n_cat and cat is None:
+                raise ValueError("cat not provided while n_cat != 0 in init. params.")
+            if n_cat > 1:  # n_cat = 1 will be ignored - no additional information
+                if cat.size(1) != n_cat:
+                    one_hot_cat = one_hot(cat, n_cat)
+                else:
+                    one_hot_cat = cat  # cat has already been one_hot encoded
+                one_hot_cat_list += [one_hot_cat]
+        for layer in self.sparse_layer:
+            if layer is not None:
+                if isinstance(layer, nn.BatchNorm1d):
+                    if x.dim() == 3:
+                        x = torch.cat(
+                            [(layer(slice_x)).unsqueeze(0) for slice_x in x], dim=0
+                        )
+                    else:
+                        x = layer(x)
+                else:
+                    if isinstance(layer, CustomizedLinear):
+                        if x.dim() == 3:
+                            one_hot_cat_list_layer = [
+                                o.unsqueeze(0).expand(
+                                    (x.size(0), o.size(0), o.size(1))
+                                )
+                                for o in one_hot_cat_list
+                            ]
+                        else:
+                            one_hot_cat_list_layer = one_hot_cat_list
+                        x = torch.cat((x, *one_hot_cat_list_layer), dim=-1)
+                    x = layer(x)
+        return x 
+    
 
 class CustomizedLinearFunction(torch.autograd.Function):
     """

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
+import numpy as np
 from adjustText import adjust_text
 
 def volcano(adata,
@@ -60,7 +61,7 @@ def volcano(adata,
             texts.append(plt.text(x=x, y=y, s=name, fontdict={'size':textsize}))
     else:
         for name in annotate_gmv:
-            i = adata.uns['_vega']['gmv_names'].index(name)
+            i = list(adata.uns['_vega']['gmv_names']).index(name)
             x = dfe_res['bayes_factor'][i]
             y = dfe_res['mad'][i]
             texts.append(plt.text(x=x, y=y, s=name, fontdict={'size':textsize}))
@@ -95,10 +96,14 @@ def gmv_embedding(adata, x, y, color=None, palette=None, title=None, save=False,
     if 'X_vega' not in adata.obsm.keys():
         raise ValueError("No GMV coordinates found in Anndata. Run 'adata.obsm['X_vega'] = model.to_latent()'")
     # Check if dim exist
-    if not all([_check_exist(adata, x), _check_exist(adata, y), _check_exist(adata, color)]):
-        raise ValueError("At least one of passed (x, y, color) names not found in Anndata. Make sure those names exist.")
-    x_i = adata.uns['_vega']['gmv_names'].index(x)
-    y_i = adata.uns['_vega']['gmv_names'].index(y)
+    if not color:
+        if not all([_check_exist(adata, x), _check_exist(adata, y)]):
+            raise ValueError("At least one of passed (x, y) names not found in Anndata. Make sure those names exist.")
+    else:
+       if not all([_check_exist(adata, x), _check_exist(adata, y), _check_exist(adata, color)]):
+        raise ValueError("At least one of passed (x, y, color) names not found in Anndata. Make sure those names exist.") 
+    x_i = list(adata.uns['_vega']['gmv_names']).index(x)
+    y_i = list(adata.uns['_vega']['gmv_names']).index(y)
     dim1 = adata.obsm['X_vega'][:,x_i]
     dim2 = adata.obsm['X_vega'][:,y_i]
     color_val = _get_color_values(adata, color, palette)
@@ -116,21 +121,21 @@ def gmv_embedding(adata, x, y, color=None, palette=None, title=None, save=False,
 
 def _check_exist(adata, x):
     """ Check if dimension exist in Anndata. """
-    if (x not in list(adata.obs)) or (x not in list(adata.var)) or (x not in adata.uns['_vega']['gmv_names']):
-        exist = False
-    else:
+    if (x in list(adata.obs)) or (x in list(adata.var)) or (x in adata.uns['_vega']['gmv_names']):
         exist = True
+    else:
+        exist = False
     return exist
 
 def _get_color_values(adata, var, palette):
     """ Value to color. TODO: Add support for gene variable."""
-    if (not var) or (var not in adata.uns['_vega']['gmv_names'].keys()) or (var not in list(adata.obs)):
+    if (not var) and (var not in adata.uns['_vega']['gmv_names']) and (var not in list(adata.obs)):
         return "lightgray"
-    elif var in adata.uns['_vega']['gmv_names'].keys():
+    elif var in list(adata.uns['_vega']['gmv_names']):
         if not palette:
             palette = 'viridis'
         cmap = mpl.cm.get_cmap(palette)
-        val_vec = adata.obsm['X_vega'][:,adata.uns['_vega']['gmv_names'].index(var)]
+        val_vec = adata.obsm['X_vega'][:,list(adata.uns['_vega']['gmv_names']).index(var)]
         color_vec = cmap(val_vec)
         return color_vec
     else:
@@ -141,7 +146,7 @@ def _get_color_values(adata, var, palette):
             n = len(lbl)
             cval = sns.color_palette(palette, n)
             color_map = dict(zip(lbl, cval))
-            color_vec = adata.obs[var].map(color_map)
+            color_vec = [color_map[k] for k in adata.obs[var]]
             return color_vec
         else:
             if not palette:

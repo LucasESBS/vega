@@ -12,11 +12,12 @@ import torch.nn.functional as F
 from torch import nn, optim
 from vega.layers import CustomizedLinear
 from vega.utils import *
+from vega.utils import _anndata_loader, _anndata_splitter
 from vega.learning_utils import *
 import scanpy as sc
 from scipy import sparse
 
-class VEGA(torch.nn.Module):
+class VEGAGaussian(torch.nn.Module):
     def __init__(self, adata,
                 gmt_paths=None, 
                 add_nodes=1,
@@ -38,7 +39,7 @@ class VEGA(torch.nn.Module):
             beta (float): weight for KL-divergence.
             dropout (float): dropout rate in model.
         """
-        super(VEGA, self).__init__()
+        super(VEGAGaussian, self).__init__()
         self.adata = adata
         self.add_nodes_ = add_nodes
         self.min_genes_ = min_genes
@@ -55,7 +56,7 @@ class VEGA(torch.nn.Module):
         self.n_gmvs = self.gmv_mask.shape[1]
         self.n_genes = self.gmv_mask.shape[0]
         self.dev = kwargs.get('device', torch.device('cpu'))
-        self.beta_ = kwargs.get("beta", 0.0001)
+        self.beta_ = kwargs.get('beta', 0.0001)
         self.dropout_ = kwargs.get('dropout', 0.3)
         self.pos_dec_ = positive_decoder
         self.epoch_history = {}
@@ -73,7 +74,7 @@ class VEGA(torch.nn.Module):
         self.logvar = nn.Sequential(nn.Linear(800, self.n_gmvs), 
                                     nn.Dropout(self.dropout_))
         self.decoder = CustomizedLinear(self.gmv_mask.T)
-        self.is_trained_ = False
+        self.is_trained_ = kwargs.get('is_trained', False) 
         # Constraining decoder to positive weights or not
         if self.pos_dec_:
             print('Constraining decoder to positive weights', flush=True)
@@ -81,9 +82,9 @@ class VEGA(torch.nn.Module):
             self.decoder.weight.data *= self.decoder.mask        
 
     def __repr__(self):
-        print("VEGA model with the following paramaters: \nn_GMVs: {}, dropout_rate:{}, beta:{}, positive_decoder:{}".format(self.n_gmvs, self.dropout_, self.beta_, self.pos_dec_))
-        print("Model is trained: {}".format(self.is_trained_))
-        return
+        att = "VEGA model with the following parameters: \nn_GMVs: {}, dropout_rate:{}, beta:{}, positive_decoder:{}".format(self.n_gmvs, self.dropout_, self.beta_, self.pos_dec_)
+        stat = "Model is trained: {}".format(self.is_trained_)
+        return '\n'.join([att, stat])
 
     def save(self, path, save_adata=False, save_history=False):
         """ 
@@ -94,8 +95,8 @@ class VEGA(torch.nn.Module):
             save_history (bool): Whether to save the training history in the save directory.
         """
         attr = inspect.getmembers(self, lambda a: not (inspect.isroutine(a)))
-        attr = [a for a in attr if not (a[0].startswith("__") and a[0].endswith("__")]
-        attr_dict = {a[0]:a[1] for a in attr if a[0][-1]=='_'}
+        attr = [a for a in attr if not (a[0].startswith("__") and a[0].endswith("__"))]
+        attr_dict = {a[0][:-1]:a[1] for a in attr if a[0][-1]=='_'}
         # Save
         with open(os.path.join(path, 'vega_attr.pkl'), 'wb') as f:
             pickle.dump(attr_dict, f)
@@ -120,13 +121,13 @@ class VEGA(torch.nn.Module):
         # Reload model attributes
         with open(os.path.join(path, 'vega_attr.pkl'), 'rb') as f:
             attr = pickle.load(f)
-        model = cls(adata, **attr)
         # Reload Anndata
         if not adata:
             try:
-                model.adata = sc.read(os.path.join(path, 'anndata.h5ad'))
+                adata = sc.read(os.path.join(path, 'anndata.h5ad'))
             except:
                 FileNotFoundError('No Anndata object was passed or found in input directory.')
+        model = cls(adata, **attr)
         # Reload history if possible
         try:
             with open(os.path.join(path, 'vega_history.pkl'), 'rb') as h:
@@ -228,7 +229,7 @@ class VEGA(torch.nn.Module):
         # Check for grouping
         if not group1:
             print("No reference group: running 1-vs-rest analysis for .obs[{}]".format(groupby))
-            group1 = self.adata.obs[groupby].unique()
+            group1 = adata.obs[groupby].unique()
         if not isinstance(group1, collections.Iterable) or type(group1)==str:
             group1 = [group1]
         # Loop over groups
@@ -281,7 +282,10 @@ class VEGA(torch.nn.Module):
             np.random.seed(random_seed)
         epsilon = 1e-12
         # Subset data
-        adata1, adata2 = adata.X[cell_idx1,:], adata.X[cell_idx2,:]
+        if sparse.issparse(adata.X):
+            adata1, adata2 = adata.X.A[cell_idx1,:], adata.X.A[cell_idx2,:]
+        else:
+            adata1, adata2 = adata.X[cell_idx1,:], adata.X[cell_idx2,:]
         # Sample cell from each condition
         idx1 = np.random.choice(np.arange(len(adata1)), n_samples)
         idx2 = np.random.choice(np.arange(len(adata2)), n_samples)
@@ -304,7 +308,7 @@ class VEGA(torch.nn.Module):
         return res
 
     @staticmethod
-    def _scale_sampling(self, arr1, arr2, n_perm=1000):
+    def _scale_sampling(arr1, arr2, n_perm=1000):
         """
         Use permutation to better estimate double integral (create more pair comparisons)
         Inspired by scVI (Lopez et al., 2018)
@@ -350,7 +354,7 @@ class VEGA(torch.nn.Module):
         mse = F.mse_loss(y_pred, y_true, reduction="sum")
         return torch.mean(mse + self.beta_*kld)
 
-    def train(self, learning_rate=1e-4, n_epochs=500, train_size=1., batch_size=128, shuffle=True, **kwargs):
+    def train_vega(self, learning_rate=1e-4, n_epochs=500, train_size=1., batch_size=128, shuffle=True, **kwargs):
         """ 
         Main method to train VEGA.
         Args:

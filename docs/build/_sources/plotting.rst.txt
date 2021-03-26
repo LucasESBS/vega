@@ -1,0 +1,5 @@
+plotting functions
+==================
+
+.. automodule:: vega.plotting
+    :members:

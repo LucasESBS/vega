@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Utils functions &mdash; VEGA 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Plotting functions" href="plotting.html" />
+    <link rel="prev" title="VEGA model" href="vega.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> VEGA
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="vega.html">VEGA</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">plotting</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">VEGA</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">API</a> &raquo;</li>
+        
+      <li>Utils functions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/api/utils.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-vega.utils">
+<span id="utils-functions"></span><h1>Utils functions<a class="headerlink" href="#module-vega.utils" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="vega.utils.dict_to_gmt">
+<code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">dict_to_gmt</code><span class="sig-paren">(</span><em class="sig-param">dict_obj</em>, <em class="sig-param">path_gmt</em>, <em class="sig-param">sep='\t'</em>, <em class="sig-param">second_col=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#dict_to_gmt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.dict_to_gmt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write dictionary to gmt format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dict_obj</strong> (<em>dict</em>) – Dictionary with gene_module:[members].</p></li>
+<li><p><strong>path_gmt</strong> (<em>str</em>) – Path to save gmt file.</p></li>
+<li><p><strong>sep</strong> (<em>str</em>) – Separator to use when writing file.</p></li>
+<li><p><strong>second_col</strong> (<em>bool</em>) – Whether to duplicate the first column.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="vega.utils.read_gmt">
+<code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">read_gmt</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">sep='\t'</em>, <em class="sig-param">min_g=0</em>, <em class="sig-param">max_g=5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#read_gmt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.read_gmt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read GMT file into dictionary of gene_module:genes.</p>
+<p>min_g and max_g are optional gene set size filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fname</strong> (<em>str</em>) – Path to gmt file</p></li>
+<li><p><strong>sep</strong> (<em>str</em>) – Separator used to read gmt file.</p></li>
+<li><p><strong>min_g</strong> (<em>int</em>) – Minimum of gene members in gene module.</p></li>
+<li><p><strong>max_g</strong> (<em>int</em>) – Maximum of gene members in gene module.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary of gene_module:genes.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>OrderedDict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="vega.utils.create_pathway_mask">
+<code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">create_pathway_mask</code><span class="sig-paren">(</span><em class="sig-param">feature_list</em>, <em class="sig-param">dict_pathway</em>, <em class="sig-param">add_missing=1</em>, <em class="sig-param">fully_connected=True</em>, <em class="sig-param">to_tensor=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#create_pathway_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.create_pathway_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a mask of shape [genes,pathways] where (i,j) = 1 if gene i is in pathway j, 0 else.</p>
+<p>Expects a list of genes and pathway dict.
+Note: dict_pathway should be an Ordered dict so that the ordering can be later interpreted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature_list</strong> (<em>list</em>) – List of genes in single-cell dataset.</p></li>
+<li><p><strong>dict_pathway</strong> (<em>OrderedDict</em>) – Dictionary of gene_module:genes.</p></li>
+<li><p><strong>add_missing</strong> (<em>int</em>) – Number of additional, fully connected nodes.</p></li>
+<li><p><strong>fully_connected</strong> (<em>bool</em>) – Whether to fully connect additional nodes or not.</p></li>
+<li><p><strong>to_tensor</strong> (<em>False</em>) – Whether to convert mask to tensor or not.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Gene module mask.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.tensor/np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="vega.utils.prepare_anndata">
+<code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">prepare_anndata</code><span class="sig-paren">(</span><em class="sig-param">anndata</em>, <em class="sig-param">batch_size</em>, <em class="sig-param">shuffle=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#prepare_anndata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.prepare_anndata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load Anndata object into pytorch data loader.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>anndata</strong> (<em>AnnData</em>) – Scanpy Anndata object.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – Cells per batch.</p></li>
+<li><p><strong>shuffle</strong> (<em>bool</em>) – Whether to shuffle data or not.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dataloader containing the data.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.DataLoader</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="vega.utils.balance_populations">
+<code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">balance_populations</code><span class="sig-paren">(</span><em class="sig-param">adata</em>, <em class="sig-param">ct_key='cell_type'</em>, <em class="sig-param">condition_key='condition'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#balance_populations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.balance_populations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Balance cell population within condition for unbias sampling and delta estimation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adata</strong> (<em>Anndata</em>) – Scanpy single-cell object.</p></li>
+<li><p><strong>ct_key</strong> (<em>str</em>) – Anndata.obs column name with cell types.</p></li>
+<li><p><strong>condition_key</strong> (<em>str</em>) – Anndata.obs column name with conditions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Scanpy single-cell object with balanced populations.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Anndata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="vega.utils.preprocess_adata">
+<code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">preprocess_adata</code><span class="sig-paren">(</span><em class="sig-param">adata</em>, <em class="sig-param">n_top_genes=5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#preprocess_adata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.preprocess_adata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple (default) Scanpy preprocessing function before autoencoders.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adata</strong> (<em>Anndata</em>) – Scanpy single-cell object.</p></li>
+<li><p><strong>n_top_genes</strong> (<em>int</em>) – Number of highly variable genes to retain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Preprocessed Anndata object.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Anndata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="vega.utils.ClassificationDataset">
+<em class="property">class </em><code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">ClassificationDataset</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#ClassificationDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.ClassificationDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Characterizes a classification dataset for PyTorch.</p>
+<dl class="method">
+<dt id="vega.utils.ClassificationDataset.__len__">
+<code class="sig-name descname">__len__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#ClassificationDataset.__len__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.ClassificationDataset.__len__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Denotes the total number of samples</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.utils.ClassificationDataset.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#ClassificationDataset.__getitem__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.ClassificationDataset.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates samples of data</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vega.utils.UnsupervisedDataset">
+<em class="property">class </em><code class="sig-prename descclassname">vega.utils.</code><code class="sig-name descname">UnsupervisedDataset</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">targets=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#UnsupervisedDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.UnsupervisedDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Characterizes a unsupervised learning dataset for PyTorch</p>
+<dl class="method">
+<dt id="vega.utils.UnsupervisedDataset.__len__">
+<code class="sig-name descname">__len__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#UnsupervisedDataset.__len__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.UnsupervisedDataset.__len__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Denotes the total number of samples</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="vega.utils.UnsupervisedDataset.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/vega/utils.html#UnsupervisedDataset.__getitem__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#vega.utils.UnsupervisedDataset.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates samples of data</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="plotting.html" class="btn btn-neutral float-right" title="Plotting functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vega.html" class="btn btn-neutral float-left" title="VEGA model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Lucas Seninge, Ioannis Anastopoulos.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
