@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 import numpy as np
+from scanpy.plotting import embedding
 from adjustText import adjust_text
 
 def volcano(adata,
@@ -81,7 +82,7 @@ def volcano(adata,
     plt.show()
 
 
-def gmv_embedding(adata, x, y, color=None, palette=None, title=None, save=False, **sct_kwds):
+def gmv_embedding(adata, x, y, color=None, palette=None, title=None, save=False, sct_kwds=None):
     """ 
     2-D scatter plot in GMV space.
     Args:
@@ -107,6 +108,7 @@ def gmv_embedding(adata, x, y, color=None, palette=None, title=None, save=False,
     dim1 = adata.obsm['X_vega'][:,x_i]
     dim2 = adata.obsm['X_vega'][:,y_i]
     color_val = _get_color_values(adata, color, palette)
+    sct_kwds = {} if sct_kwds is None else sct_kwds.copy()
     plt.scatter(x=dim1, y=dim2, c=color_val, **sct_kwds)
     plt.xlabel(x)
     plt.ylabel(y)
@@ -141,7 +143,7 @@ def _get_color_values(adata, var, palette):
     else:
         if adata.obs[var].dtype == 'category':
             if not palette:
-                palette = 'deep'
+                palette = 'tab10'
             lbl = adata.obs[var].unique()
             n = len(lbl)
             cval = sns.color_palette(palette, n)
@@ -155,3 +157,50 @@ def _get_color_values(adata, var, palette):
             val_vec = adata.obs[var]
             color_vec = cmap(val_vec)
             return color_vec
+
+
+def gmv_plot(adata, x, y, color=None, title=None, palette=None):
+    if 'X_vega' not in adata.obsm.keys():
+        raise ValueError("No GMV coordinates found in Anndata. Run 'adata.obsm['X_vega'] = model.to_latent()'")
+    # Check if dim exist
+    if not color:
+        if not all([_check_exist(adata, x), _check_exist(adata, y)]):
+            raise ValueError("At least one of passed (x, y) names not found in Anndata. Make sure those names exist.")
+    else:
+       if not all([_check_exist(adata, x), _check_exist(adata, y), _check_exist(adata, color)]):
+        raise ValueError("At least one of passed (x, y, color) names not found in Anndata. Make sure those names exist.")
+    # Components are indexed starting at 1 - so add 1 to indices
+    x_i = list(adata.uns['_vega']['gmv_names']).index(x)+1
+    y_i = list(adata.uns['_vega']['gmv_names']).index(y)+1
+    # Call Scanpy embedding wrapper
+    fig = embedding(adata,
+                    basis='X_vega',
+                    color=color,
+                    components=[x_i, y_i],
+                    title=title,
+                    palette=palette,
+                    return_fig=True,
+                    show=False).gca()
+    fig.set_xlabel(x)
+    fig.set_ylabel(y)
+    plt.show()
+    return
+
+def loss(model, plot_validation=True):
+    """
+    Plot training loss and validation if plot_validation is True. 
+    """
+    train_hist = model.epoch_history['train_loss']
+    n_epochs = len(train_hist)
+    plt.plot(np.arange(n_epochs), train_hist, label='Training loss', color='blue')
+    if plot_validation:
+        plt.plot(np.arange(n_epochs),
+                 model.epoch_history['valid_loss'],
+                 label='Validation loss',
+                 color='orange'
+                )
+    plt.legend()
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.show()
+    return

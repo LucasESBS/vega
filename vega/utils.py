@@ -3,17 +3,24 @@ import torch
 import numpy as np
 import scanpy as sc
 from scipy import sparse
+from scvi.data import setup_anndata as scvi_setup
+from scvi.dataloaders import DataSplitter
 import vega
+import warnings
 
-def setup_anndata(adata, copy=False):
+def setup_anndata(adata, batch_key=None, categorical_covariate_keys=None, copy=False):
     """
     Creates VEGA fields in input Anndata object for mask.
+    Also creates SCVI field which will be used for batch and covariates.
     Args:
         adata (Anndata): Scanpy single-cell object.
         copy (bool): Whether to return a copy or change in place.
+        batch_key (str): Observation to be used as batch.
+        categorical_covariate_keys (list, str): Observation to use as covariate keys.
     Return:
         adata (Anndata): updated object if copy is True.
     """
+    print('Running VEGA and SCVI setup...', flush=True)
     if copy:
         adata = adata.copy()
 
@@ -24,6 +31,11 @@ def setup_anndata(adata, copy=False):
     
     adata.uns['_vega'] = {}
     adata.uns['_vega']['version'] = vega.__version__
+    # Use scvi setup to get batch keys and covariates
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        scvi_setup(adata, batch_key=batch_key, categorical_covariate_keys=categorical_covariate_keys)
+
     if copy:
         return adata
 
@@ -173,6 +185,21 @@ def _anndata_splitter(adata, train_size):
         test_adata = False
     return train_adata, test_adata
     
+
+def _scvi_loader(adata, train_size, batch_size, use_gpu=False):
+    """
+    SCVI splitter. Returs SCVI loader for train and test set.
+    """
+    data_splitter = DataSplitter(
+            adata,
+            train_size=train_size,
+            validation_size=1.-train_size,
+            batch_size=batch_size,
+            use_gpu=use_gpu)
+    train_dl, test_dl, _ = data_splitter()
+    return train_dl, test_dl
+    
+
 
 def preprocess_anndata(adata, n_top_genes=5000, copy=False):
     """

@@ -3,13 +3,14 @@ import logging
 from anndata import AnnData
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, RNASeqMixin, VAEMixin
 from scvi._compat import Literal
+from typing import Dict, Iterable, Optional, Sequence, Union
 import torch
 from vega._vegamodule import SparseVAE
 from vega.utils import *
 
 logger = logging.getLogger(__name__)
 
-class VEGA(VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
+class VegaSCVI(RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
     VEGA: VAE Enhanced by Gene Annotations [Seninge21]_.
 
@@ -31,6 +32,8 @@ class VEGA(VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
         Number of nodes per hidden layer.
     n_layers
         Number of hidden layers used for encoder NN.
+    gene_likelihood
+        Likelihood function for the generative model.
     dropout_rate
         Dropout rate for neural networks.
     use_cuda
@@ -46,11 +49,12 @@ class VEGA(VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
                 positive_decoder: bool = True, 
                 n_hidden: int = 600,
                 n_layers: int = 2,
+                gene_likelihood: Literal["zinb", "nb", "poisson"] = "zinb",
                 dropout_rate: float = 0.1,
                 z_dropout: float = 0,
                 use_cuda: bool = True,
                 **model_kwargs):
-        super(VEGA, self).__init__(adata)
+        super(VegaSCVI, self).__init__(adata)
         # Get attributes
         self.add_nodes_ = add_nodes
         self.min_genes_ = min_genes
@@ -76,6 +80,7 @@ class VEGA(VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
                                 n_cats_per_cov = n_cats_per_cov,
                                 n_hidden = n_hidden,
                                 n_layers = n_layers,
+                                gene_likelihood = gene_likelihood,
                                 dropout_rate = dropout_rate,
                                 z_dropout = z_dropout,
                                 encode_covariates = False,
@@ -91,7 +96,23 @@ class VEGA(VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     #def _scvi_dl_class(self):
         #return ScviDataLoader
 
-
-        
-        
-    
+    def differential_activity(self,
+        adata: Optional[AnnData] = None,
+        groupby: Optional[str] = None,
+        group1: Optional[Iterable[str]] = None,
+        group2: Optional[str] = None,
+        idx1: Optional[Union[Sequence[int], Sequence[bool]]] = None,
+        idx2: Optional[Union[Sequence[int], Sequence[bool]]] = None,
+        mode: Literal["vanilla", "change"] = "change",
+        delta: float = 0.25,
+        batch_size: Optional[int] = None,
+        all_stats: bool = True,
+        batch_correction: bool = False,
+        batchid1: Optional[Iterable[str]] = None,
+        batchid2: Optional[Iterable[str]] = None,
+        fdr_target: float = 0.05,
+        silent: bool = False,
+        **kwargs):
+            adata = self._validate_anndata(adata)
+            col_names = adata.uns['_vega']['gmv_names']
+            return result

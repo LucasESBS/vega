@@ -17,11 +17,98 @@ from typing import Iterable, List
 import torch
 import torch.nn as nn
 from scvi.nn import FCLayers, one_hot
+from .regularizers import GelNet, LassoRegularizer
+
 
 
 class DecoderVEGA(nn.Module):
     """
-    Masked linear decoder for VEGA.
+    Decoder for VEGA model (normalized data).
+    """
+    def __init__(self,
+                mask: numpy.ndarray,
+                n_cat_list: Iterable[int] = None, 
+                regularizer: str = 'mask',
+                positive_decoder: bool = True,
+                reg_kwargs=None):
+        super(DecoderVEGA, self).__init__()
+        self.n_input = mask.shape[0]
+        self.n_output = mask.shape[1]
+        self.reg_method = regularizer
+        if reg_kwargs and (reg_kwargs.get('d', None) is None):
+            reg_kwargs['d'] = ~mask.T.astype(bool)
+        if reg_kwargs is None:
+            reg_kwargs = {}
+        if regularizer=='mask':
+            self.decoder = SparseLayer(mask,
+                                        n_cat_list=n_cat_list,
+                                        use_batch_norm=False,
+                                        use_layer_norm=False,
+                                        bias=True,
+                                        dropout_rate=0)
+        elif regularizer=='gelnet':
+            self.decoder = FCLayers(n_in=self.n_input,
+                                    n_out=self.n_output,
+                                    n_layers=1,
+                                    use_batch_norm=False,
+                                    use_activation=False,
+                                    use_layer_norm=False,
+                                    bias=True,
+                                    dropout_rate=0)
+            self.regularizer = GelNet(**reg_kwargs)
+        elif regularizer=='l1':
+            self.decoder = FCLayers(n_in=self.n_input,
+                                    n_out=self.n_output,
+                                    n_layers=1,
+                                    use_batch_norm=False,
+                                    use_activation=False,
+                                    use_layer_norm=False,
+                                    bias=True,
+                                    dropout_rate=0)
+            self.regularizer = LassoRegularizer(**reg_kwargs)
+        else:
+            raise ValueError("Regularizer not recognized. Choose one of ['mask', 'gelnet', 'l1']")
+
+    def forward(self, x: torch.Tensor, *cat_list:int):
+        """ Forward method for VEGA decoder """
+        return self.decoder(x, *cat_list)
+    
+    def _get_weights(self):
+        """ Returns weight matrix of linear decoder (for regularization purposes)"""
+        if isinstance(self.decoder, SparseLayer):
+            w = self.decoder.sparse_layer[0].weight
+        elif isinstance(self.decoder, FCLayers):
+            w = self.decoder.fc_layers[0][0].weight
+        return w
+        
+    def quadratic_penalty(self):
+        """ Returns loss associated with quadratic penalty of regularizer """
+        if self.reg_method == 'mask':
+            return torch.tensor(0)
+        else:
+            return self.regularizer.quadratic_update(self._get_weights())
+
+    def proximal_update(self):
+        """ Directly updates weights using proximal operator (for non-smooth regularizer) """
+        if self.reg_method == 'mask':
+            return
+        else:
+            self.regularizer.proximal_update(self._get_weights())
+            return
+    
+    def _positive_weights(self, use_softplus=False):
+        """ Set negative weights to 0 if positive_decoder is True """
+        w = self._get_weights()
+        if use_softplus:
+            w.data = nn.functional.softplus(w.data)
+        else:
+            w.data = w.data.clamp(0)
+        return
+
+
+class DecoderVEGACount(nn.Module):
+    """
+    Masked linear decoder for VEGA in SCVI mode (count data).
     """
     def __init__(self, 
                 mask,
@@ -31,7 +118,7 @@ class DecoderVEGA(nn.Module):
                 use_layer_norm: bool = False,
                 bias: bool = False
                 ):
-        super(DecoderVEGA, self).__init__()
+        super(DecoderVEGACount, self).__init__()
         self.n_input = mask.shape[1]
         self.n_output = mask.shape[0]
         # Mean and dropout decoder - dropout is fully connected

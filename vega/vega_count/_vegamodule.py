@@ -9,7 +9,7 @@ from typing import Iterable, Optional
 from scvi.nn import DecoderSCVI, Encoder
 #from torch.distributions import Normal
 #from torch.distributions import kl_divergence as kl
-from vega.layers import DecoderVEGA
+from vega.layers import DecoderVEGACount
 
 torch.backends.cudnn.benchmark = True
 
@@ -49,6 +49,7 @@ class SparseVAE(VAE):
         n_cats_per_cov: Optional[Iterable[int]] = None,
         dropout_rate: float = 0.1,
         z_dropout: float = 0,
+        gene_likelihood: str = "zinb",
         encode_covariates: bool = False
     ):
         super().__init__(n_input=n_input)
@@ -56,6 +57,7 @@ class SparseVAE(VAE):
         self.n_genes = gmv_mask.shape[0]
         self.n_gmvs = gmv_mask.shape[1]
         self.n_batch = n_batch
+        self.gene_likelihood = gene_likelihood
         n_input_encoder = self.n_genes + n_continuous_cov * encode_covariates
         cat_list = [n_batch] + list([] if n_cats_per_cov is None else n_cats_per_cov)
         encoder_cat_list = cat_list if encode_covariates else None
