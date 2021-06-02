@@ -8,3 +8,5 @@ seaborn
 scipy==1.4
 scanpy==1.5.1
 umap-learn
+scvi-tools==0.9.0
+adjustText

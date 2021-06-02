@@ -13,11 +13,13 @@ required = ['torch==1.5.1',
             'seaborn',
             'scipy==1.4',
             'scanpy==1.5.1',
-            'umap-learn']
+            'umap-learn',
+            'adjustText',
+            'scvi-tools==0.9.0']
 
 setuptools.setup(
     name="VEGA-LucaSC",
-    version="0.0.1",
+    version="0.0.2",
     author="Lucas Seninge",
     author_email="lseninge@ucsc.edu",
     description="Package for VEGA: VAE Enhanced by Gene Annotations",
