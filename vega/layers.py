@@ -23,7 +23,20 @@ from .regularizers import GelNet, LassoRegularizer
 
 class DecoderVEGA(nn.Module):
     """
-    Decoder for VEGA model (normalized data).
+    Decoder for VEGA model (log-transformed data).
+
+    Parameters
+    ----------
+    mask
+        gene-gene module membership matrix
+    n_cat_list
+        list encoding number of categories for each covariate
+    regularizer
+        choice of regularizer for the decoder. Default to masking (VEGA)
+    positive_decoder
+        whether to constrain decoder weigths to positive values
+    reg_kwargs
+        keyword arguments for the regularizer
     """
     def __init__(self,
                 mask: numpy.ndarray,
@@ -40,6 +53,7 @@ class DecoderVEGA(nn.Module):
         if reg_kwargs is None:
             reg_kwargs = {}
         if regularizer=='mask':
+            print('Using masked decoder', flush=True)
             self.decoder = SparseLayer(mask,
                                         n_cat_list=n_cat_list,
                                         use_batch_norm=False,
@@ -47,6 +61,7 @@ class DecoderVEGA(nn.Module):
                                         bias=True,
                                         dropout_rate=0)
         elif regularizer=='gelnet':
+            print('Using GelNet-regularized decoder', flush=True)
             self.decoder = FCLayers(n_in=self.n_input,
                                     n_out=self.n_output,
                                     n_layers=1,
@@ -57,6 +72,7 @@ class DecoderVEGA(nn.Module):
                                     dropout_rate=0)
             self.regularizer = GelNet(**reg_kwargs)
         elif regularizer=='l1':
+            print('Using L1-regularized decoder', flush=True)
             self.decoder = FCLayers(n_in=self.n_input,
                                     n_out=self.n_output,
                                     n_layers=1,
@@ -108,7 +124,22 @@ class DecoderVEGA(nn.Module):
 
 class DecoderVEGACount(nn.Module):
     """
-    Masked linear decoder for VEGA in SCVI mode (count data).
+    Masked linear decoder for VEGA in SCVI mode (count data). Note: positive weights not included yet.
+
+    Parameters
+    ----------
+    mask
+        gene-gene module membership matrix
+    n_cat_list
+        list encoding number of categories for each covariate
+    n_continuous_cov
+        number of continuous covariates
+    use_batch_norm
+        whether to use batch normalization in the decoder
+    use_layer_norm
+        whether to use layer normalization in the decoder
+    bias
+        whether to use a bias parameter in the linear decoder 
     """
     def __init__(self, 
                 mask,
@@ -155,6 +186,20 @@ class SparseLayer(nn.Module):
     
     Parameters:
     -----------
+    mask
+        gene-gene module membership matrix
+    n_cat_list
+        list encoding number of categories for each covariate
+    n_continuous_cov
+        number of continuous covariates
+    use_activation
+        whether to use an activation layer in the decoder
+    use_batch_norm
+        whether to use batch normalization in the decoder
+    use_layer_norm
+        whether to use layer normalization in the decoder
+    bias
+        whether to use a bias parameter in the linear decoder
     """
     def __init__(self,
                 mask: numpy.ndarray,
@@ -289,14 +334,14 @@ class CustomizedLinearFunction(torch.autograd.Function):
 class CustomizedLinear(nn.Module):
     def __init__(self, mask, bias=True):
         """
-        extended torch.nn module which mask connection.
-        Args:
-        mask [torch.tensor]:
-            the shape is (n_input_feature, n_output_feature).
-            the elements are 0 or 1 which declare un-connected or
-            connected.
-        bias [bool]:
-            flg of bias.
+        Extended torch.nn module which mask connection.
+
+        Parameters
+        ----------
+        mask
+            gene-gene module membership matrix
+        bias
+            whether to use a bias term
         """
         super(CustomizedLinear, self).__init__()
         self.input_features = mask.shape[0]

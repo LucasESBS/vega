@@ -5,7 +5,7 @@ from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, RNASeqMix
 from scvi._compat import Literal
 from typing import Dict, Iterable, Optional, Sequence, Union
 import torch
-from vega._vegamodule import SparseVAE
+from ._vegamodule import SparseVAE
 from vega.utils import *
 
 logger = logging.getLogger(__name__)

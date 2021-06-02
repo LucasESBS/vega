@@ -1,2 +1,2 @@
- from ._vegamodel import VegaSCVI, SparseVAE
+from ._vegamodel import VegaSCVI, SparseVAE
 

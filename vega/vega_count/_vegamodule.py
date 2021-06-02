@@ -89,7 +89,7 @@ class SparseVAE(VAE):
                                 )
         # Sparse decoder to decode GMV activities
         # TO DO: Add continuous covariates to dim
-        self.decoder = DecoderVEGA(
+        self.decoder = DecoderVEGACount(
                                 self.mask.T,
                                 n_cat_list = cat_list,
                                 n_continuous_cov = n_continuous_cov,

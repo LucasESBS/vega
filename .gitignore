@@ -1,1 +1,8 @@
 tests/
+.ipynb_checkpoints/
+/tutorials/train_pbmc.h5ad
+__pycache__
+build/
+dist/
+*.egg-info/
+/docs/build/
