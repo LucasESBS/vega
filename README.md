@@ -1,4 +1,4 @@
-https://zenodo.org/badge/326273034.svg
+[![DOI](https://zenodo.org/badge/326273034.svg)](https://zenodo.org/badge/latestdoi/326273034)
 # VEGA: VAE Enhanced by Gene Annotations
 ### _A VAE for analyzing pathways, transcription factors, cell types in single-cell RNA-seq data_
 
