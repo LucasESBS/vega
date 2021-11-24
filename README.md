@@ -16,7 +16,7 @@ VEGA needs 2 things to analyze your data:
 VEGA provides a statistical framework for identifying differentially activated GMVs. See vega-reproducibility github for examples.
 
 ## Reproducing paper results
-VEGA manuscript results can be reproduced using [the following code](https://github.com/LucasESBS/vega-reproducibility).
+VEGA manuscript results can be reproduced using [the following code](https://github.com/LucasESBS/vega-reproducibility). Check tags for appropriate version of VEGA for reproducing results.
 
 ## Manuscript
 VEGA preprint can be found [here](https://www.biorxiv.org/content/10.1101/2020.12.17.423310v1.abstract).
