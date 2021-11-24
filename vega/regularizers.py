@@ -85,13 +85,24 @@ class GelNet:
             norm = self.l1 * self.lr
             w = weights.data
             w_update = w.clone()
-            norm_w = norm * torch.ones(w.size(), device=self.dev)
-            pos = torch.min(norm_w, norm * torch.clamp(w, min=0))
-            neg = torch.min(norm_w, -1.0 * norm * torch.clamp(w, max=0))
+            #norm_w = norm * torch.ones(w.size(), device=self.dev)
+            #pos = torch.min(norm_w, norm * torch.clamp(w, min=0))
+            #neg = torch.min(norm_w, -1.0 * norm * torch.clamp(w, max=0))
+            #if self.d is not None:
+                #w_update[self.d] = w[self.d] - pos[self.d] + neg[self.d]
+            #else:
+                #w_update = w - pos + neg
+            w_geq = w_update > norm
+            w_leq = w_update < -1.0*norm
+            w_sparse = ~w_geq&~w_leq
             if self.d is not None:
-                w_update[self.d] = w[self.d] - pos[self.d] + neg[self.d]
+                w_update[(self.d&w_geq)] -= norm
+                w_update[(self.d&w_leq)] += norm
+                w_update[(self.d&w_sparse)] = 0.
             else:
-                w_update = w - pos + neg
+                w_update[w_geq] -= norm
+                w_update[w_leq] += norm
+                w_update[w_sparse] = 0.
             weights.data = w_update
             return
                 
@@ -129,13 +140,24 @@ class LassoRegularizer:
             norm = self.l1 * self.lr
             w = weights.data
             w_update = w.clone()
-            norm_w = norm * torch.ones(w.size(), device=self.dev)
-            pos = torch.min(norm_w, norm * torch.clamp(w, min=0))
-            neg = torch.min(norm_w, -1.0 * norm * torch.clamp(w, max=0))
+            #norm_w = norm * torch.ones(w.size(), device=self.dev)
+            #pos = torch.min(norm_w, norm * torch.clamp(w, min=0))
+            #neg = torch.min(norm_w, -1.0 * norm * torch.clamp(w, max=0))
+            #if self.d is not None:
+                #w_update[self.d] = w[self.d] - pos[self.d] + neg[self.d]
+            #else:
+                #w_update = w - pos + neg
+            w_geq = w_update > norm
+            w_leq = w_update < -1.0*norm
+            w_sparse = ~w_geq&~w_leq
             if self.d is not None:
-                w_update[self.d] = w[self.d] - pos[self.d] + neg[self.d]
+                w_update[(self.d&w_geq)] -= norm
+                w_update[(self.d&w_leq)] += norm
+                w_update[(self.d&w_sparse)] = 0.
             else:
-                w_update = w - pos + neg
+                w_update[w_geq] -= norm
+                w_update[w_leq] += norm
+                w_update[w_sparse] = 0.
             weights.data = w_update
             return 
     
