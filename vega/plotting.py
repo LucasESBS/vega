@@ -61,17 +61,17 @@ def volcano(adata,
         raise ValueError('Group(s) not found. Available comparisons:{}'.format(list(adata.uns['_vega']['differential'].keys())))
     
     dfe_res = adata.uns['_vega']['differential'][key_comp]
-
+    mad = np.abs(dfe_res['differential_metric'])
     xlim_v = np.abs(dfe_res['bayes_factor']).max() + 0.5
-    ylim_v = dfe_res['mad'].max()+0.5
+    ylim_v = mad.max()+0.5
 
-    idx_sig = np.arange(len(dfe_res['bayes_factor']))[(np.abs(dfe_res['bayes_factor'])>sig_lvl) & (np.abs(dfe_res['mad'])>metric_lvl)]
+    idx_sig = np.arange(len(dfe_res['bayes_factor']))[(np.abs(dfe_res['bayes_factor'])>sig_lvl) & (mad>metric_lvl)]
     # Plotting
     fig, ax = plt.subplots(figsize=figsize)
-    ax.scatter(dfe_res['bayes_factor'], dfe_res['mad'],
+    ax.scatter(dfe_res['bayes_factor'], mad,
                  color='grey', s=s, alpha=0.8, linewidth=0,
                  rasterized=settings._vector_friendly)
-    ax.scatter(dfe_res['bayes_factor'][idx_sig], dfe_res['mad'][idx_sig],
+    ax.scatter(dfe_res['bayes_factor'][idx_sig], mad[idx_sig],
                  color='red', s=s*2, linewidth=0,
                  rasterized=settings._vector_friendly)
     ax.vlines(x=-sig_lvl, ymin=-0.5, ymax=ylim_v, color='black', linestyles='--', linewidth=1., alpha=0.2)
@@ -82,18 +82,18 @@ def volcano(adata,
         for i in idx_sig:
             name = adata.uns['_vega']['gmv_names'][i]
             x = dfe_res['bayes_factor'][i]
-            y = dfe_res['mad'][i]
+            y = mad[i]
             texts.append(plt.text(x=x, y=y, s=name, fontdict={'size':textsize}))
     else:
         for name in annotate_gmv:
             i = list(adata.uns['_vega']['gmv_names']).index(name)
             x = dfe_res['bayes_factor'][i]
-            y = dfe_res['mad'][i]
+            y = mad[i]
             texts.append(plt.text(x=x, y=y, s=name, fontdict={'size':textsize}))
         
 
     ax.set_xlabel(r'$\log_e$(Bayes factor)', fontsize=fontsize)
-    ax.set_ylabel('MD', fontsize=fontsize)
+    ax.set_ylabel('|Differential Metric|', fontsize=fontsize)
     ax.set_ylim([0,ylim_v])
     ax.set_xlim([-xlim_v,xlim_v])
     if title:
@@ -408,3 +408,4 @@ def _make_pretty(string):
     else:
         s = ' '.join(string.split('_')[1:]).lower() + ' activity'
     return s.capitalize()
+

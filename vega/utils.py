@@ -7,6 +7,7 @@ from scvi.data import setup_anndata as scvi_setup
 from scvi.dataloaders import DataSplitter
 import vega
 import warnings
+from sklearn.mixture import GaussianMixture
 
 def setup_anndata(adata, batch_key=None, categorical_covariate_keys=None, copy=False):
     """
@@ -223,3 +224,29 @@ def preprocess_anndata(adata, n_top_genes=5000, copy=False):
     if copy:
         return adata
 
+def _estimate_delta(metric_means, min_threshold=1., coef=0.6):
+    """
+    Estimating delta from GMM. Taken from scvi-tools.
+    """
+    gmm = GaussianMixture(n_components=3)
+    gmm.fit(metric_means[:, None])
+    vals = np.sort(gmm.means_.squeeze())
+    res = coef * np.abs(vals[[0, -1]]).mean()
+    res = np.maximum(min_threshold, res)
+    return res
+
+def _fdr_de_prediction(posterior_probas: np.ndarray, fdr: float = 0.05):
+    """
+    Compute posterior expected FDR and tag features as DE.
+    From scvi-tools.
+    """
+    if not posterior_probas.ndim == 1:
+        raise ValueError("posterior_probas should be 1-dimensional")
+    sorted_genes = np.argsort(-posterior_probas)
+    sorted_pgs = posterior_probas[sorted_genes]
+    cumulative_fdr = (1.0 - sorted_pgs).cumsum() / (1.0 + np.arange(len(sorted_pgs)))
+    d = (cumulative_fdr <= fdr).sum()
+    pred_de_genes = sorted_genes[:d]
+    is_pred_de = np.zeros_like(cumulative_fdr).astype(bool)
+    is_pred_de[pred_de_genes] = True
+    return is_pred_de

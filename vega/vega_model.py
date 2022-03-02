@@ -8,10 +8,11 @@ import collections
 import torch
 #import logging
 import numpy as np
+import pandas as pd
 import torch.nn.functional as F
 from torch import nn, optim
 from vega.utils import *
-from vega.utils import _anndata_loader, _anndata_splitter, _scvi_loader
+from vega.utils import _anndata_loader, _anndata_splitter, _scvi_loader, _estimate_delta, _fdr_de_prediction
 from vega.learning_utils import *
 import scanpy as sc
 from scipy import sparse
@@ -83,7 +84,7 @@ class VEGA(torch.nn.Module):
         self.n_gmvs = self.gmv_mask.shape[1]
         self.n_genes = self.gmv_mask.shape[0]
         self.use_cuda = kwargs.get('use_cuda', False)
-        self.beta_ = kwargs.get('beta', 0.0001)
+        self.beta_ = kwargs.get('beta', 0.00005)
         self.dropout_ = kwargs.get('dropout', 0.1)
         self.z_dropout_ = kwargs.get('z_dropout', 0.3)
         self.pos_dec_ = positive_decoder
@@ -113,11 +114,12 @@ class VEGA(torch.nn.Module):
                                 #bias=True,
                                 #dropout_rate=0)
         # Setup decoder
+        self.reg_kwargs = reg_kwargs
         self.decoder = DecoderVEGA(mask = self.gmv_mask.T,
                                     n_cat_list = cat_list,
                                     regularizer = self.regularizer_,
                                     positive_decoder = self.pos_dec_,
-                                    reg_kwargs = reg_kwargs)
+                                    reg_kwargs = self.reg_kwargs)
         # Other hyperparams
         self.is_trained_ = kwargs.get('is_trained', False) 
         # Constraining decoder to positive weights or not
@@ -138,7 +140,7 @@ class VEGA(torch.nn.Module):
         else:
             return list(self.adata.uns['_vega']['gmv_names'])
 
-    def save(self, path, save_adata=False, save_history=False, overwrite=False):
+    def save(self, path, save_adata=False, save_history=False, overwrite=False, save_regularizer_kwargs=True):
         """ 
         Save model parameters to input directory. Saving Anndata object and training history is optional.
 
@@ -150,6 +152,8 @@ class VEGA(torch.nn.Module):
             whether to save the Anndata object in the save directory.
         save_history
             whether to save the training history in the save directory.
+        save_regularizer_kwargs
+            whether to save regularizer hyperparameters (lambda, penalty matrix...) in the save directory.
         """
         attr = inspect.getmembers(self, lambda a: not (inspect.isroutine(a)))
         attr = [a for a in attr if not (a[0].startswith("__") and a[0].endswith("__"))]
@@ -172,6 +176,9 @@ class VEGA(torch.nn.Module):
         if save_history:
             with open(os.path.join(path, 'vega_history.pkl'), 'wb') as h:
                 pickle.dump(self.epoch_history, h)
+        if self.reg_kwargs and save_regularizer_kwargs:
+            with open(os.path.join(path, 'regularizer_kwargs.pkl'), 'wb') as r:
+                pickle.dump(self.reg_kwargs, r)
         print("Model files saved at {}".format(path))
         return
     
@@ -192,8 +199,13 @@ class VEGA(torch.nn.Module):
         # Reload model attributes
         with open(os.path.join(path, 'vega_attr.pkl'), 'rb') as f:
             attr = pickle.load(f)
+        # Reload regularizer if possible
         if 'reg_kwargs' not in attr and attr['regularizer'] != 'mask':
-            attr['reg_kwargs'] = reg_kwargs
+            try:
+                with open(os.path.join(path, 'regularizer_kwargs.pkl'), 'rb') as r:
+                    attr['reg_kwargs'] = pickle.load(r)
+            except:
+                attr['reg_kwargs'] = reg_kwargs
         # Reload Anndata
         if not adata:
             try:
@@ -379,7 +391,7 @@ class VEGA(torch.nn.Module):
         return mean_z
     
     @torch.no_grad()
-    def differential_activity(self, groupby, adata=None, group1=None, group2=None, **kwargs):
+    def differential_activity(self, groupby, adata=None, group1=None, group2=None, mode='change', delta=2., fdr_target=0.05, **kwargs):
         """
         Bayesian differential activity procedures for GMVs.
         Similar to scVI [Lopez 2018] Bayesian DGE but for latent variables.
@@ -395,6 +407,12 @@ class VEGA(torch.nn.Module):
             reference group(s).
         group2
             outgroup(s).
+        mode
+            differential activity mode. If 'vanilla', uses [Lopez2018], if 'change' uses [Boyeau2019].
+        delta
+            differential activity threshold for 'change' mode.
+        fdr_target
+            minimum FDR to consider gene as DE.
         **kwargs
             optional arguments of the bayesian_differential method.
         """
@@ -412,6 +430,7 @@ class VEGA(torch.nn.Module):
             group1 = [group1]
         # Loop over groups
         diff_res = dict()
+        df_res = []
         for g in group1:
             # get indices and compute values
             idx_g1 = adata.obs[groupby] == g
@@ -425,19 +444,37 @@ class VEGA(torch.nn.Module):
             res_g = self.bayesian_differential(adata,
                                                 idx_g1,
                                                 idx_g2,
+                                                mode=mode,
+                                                delta=delta,
                                                 **kwargs)
             diff_res[name_g1+' vs.'+name_g2] = res_g
+            # report results as df
+            df = pd.DataFrame(res_g, index=adata.uns['_vega']['gmv_names'])
+            sort_key = "p_da" if mode == "change" else "bayes_factor"
+            df = df.sort_values(by=sort_key, ascending=False)
+            if mode == 'change':
+                df['is_da_fdr_{}'.format(fdr_target)] = _fdr_de_prediction(df['p_da'], fdr=fdr_target)
+            # Add names to result df
+            df['comparison'] = '{} vs. {}'.format(name_g1, name_g2)
+            df['group1'] = name_g1
+            df['group2'] = name_g2
+            df_res.append(df)
+        # Concatenate df results
+        result = pd.concat(df_res, axis=0)
         # Put results in Anndata object
         adata.uns['_vega']['differential'] = diff_res
-        return
+        return result
     
     @torch.no_grad()    
     def bayesian_differential(self, adata,
                                 cell_idx1, 
                                 cell_idx2, 
-                                n_samples=2000, 
+                                n_samples=5000, 
                                 use_permutations=True, 
-                                n_permutations=1000, 
+                                n_permutations=5000,
+                                mode='change',
+                                delta=2.,
+                                alpha=0.66,
                                 random_seed=False):
         """ 
         Run Bayesian differential expression in latent space.
@@ -457,6 +494,10 @@ class VEGA(torch.nn.Module):
             whether to use permutations when computing the double integral.
         n_permutations
             number of permutations for MC integral.
+        mode
+            differential activity test strategy. 'vanilla' corresponds to [Lopez2018], 'change' to [Boyeau2019].
+        delta
+            for mode 'change', the differential threshold to be used.
         random_seed
             seed for reproducibility.
 
@@ -467,9 +508,12 @@ class VEGA(torch.nn.Module):
         """
         #self.eval()
         # Set seed for reproducibility
+        #print(mode, delta, alpha)
         if random_seed:
             torch.manual_seed(random_seed)
             np.random.seed(random_seed)
+        if mode not in ['vanilla', 'change']:
+            raise ValueError('Differential mode not understood. Pick one of "vanilla", "change"')
         epsilon = 1e-12
         # Subset data
         #if sparse.issparse(adata.X):
@@ -486,15 +530,30 @@ class VEGA(torch.nn.Module):
         # This estimates the double integral in the posterior of the hypothesis
         if use_permutations:
             z1, z2 = self._scale_sampling(z1, z2, n_perm=n_permutations)
-        p_h1 = np.mean(z1 > z2, axis=0)
-        p_h2 = 1.0 - p_h1
-        mad = np.abs(np.mean(z1 - z2, axis=0))
-        bf = np.log(p_h1 + epsilon) - np.log(p_h2 + epsilon) 
-        # Wrap results
-        res = {'p_h1':p_h1,
-                'p_h2':p_h2,
-                'bayes_factor': bf,
-                'mad':mad}
+        if mode=='vanilla':
+            p_h1 = np.mean(z1 > z2, axis=0)
+            p_h2 = 1.0 - p_h1
+            md = np.mean(z1 - z2, axis=0)
+            bf = np.log(p_h1 + epsilon) - np.log(p_h2 + epsilon) 
+            # Wrap results
+            res = {'p_h1':p_h1,
+                    'p_h2':p_h2,
+                    'bayes_factor': bf,
+                    'differential_metric':md}
+        else:
+            diffs = z1 - z2
+            md = diffs.mean(0)
+            if not delta:
+                delta = _estimate_delta(md, min_thresh=1., coef=0.6)
+            p_da = np.mean(np.abs(diffs) > delta, axis=0)
+            is_da_alpha = (np.abs(md) > delta) & (p_da > alpha)
+            res = {'p_da':p_da,
+                    'p_not_da':1.-p_da,
+                    'bayes_factor':np.log(p_da+epsilon) - np.log((1.-p_da)+epsilon),
+                    'is_da_alpha_{}'.format(alpha):is_da_alpha,
+                    'differential_metric':md,
+                    'delta':delta
+                    }
         return res
 
     @staticmethod
