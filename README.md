@@ -6,7 +6,7 @@
 
 ## Introduction
 
-VEGA is a VAE aimed at analyzing _a priori_ specified latent variables such as pathways. VEGA is implemented with pytorch, and using the scanpy and scvi-tools ecosystem.
+VEGA is a VAE aimed at analyzing _a priori_ specified latent variables such as pathways. VEGA is implemented with [pytorch](https://pytorch.org/), and using the [scanpy](https://scanpy.readthedocs.io/en/stable/) and [scvi-tools](https://scvi-tools.org/) ecosystem.
 
 ## Getting started
 
