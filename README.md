@@ -1,4 +1,5 @@
-![logo](docs/source/_static/logo.png?raw=true "VEGA"| width=200)
+<img src="docs/source/_static/logo.png" width="100">
+
 
 [![DOI](https://zenodo.org/badge/326273034.svg)](https://zenodo.org/badge/latestdoi/326273034)
 ### _A VAE for analyzing pathways, transcription factors, cell types in single-cell RNA-seq data_
