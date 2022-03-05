@@ -1,4 +1,4 @@
-<img src="docs/source/_static/logo.png" width="100">
+<img src="docs/source/_static/logo.png" width="400">
 
 
 [![DOI](https://zenodo.org/badge/326273034.svg)](https://zenodo.org/badge/latestdoi/326273034)
