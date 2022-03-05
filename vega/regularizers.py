@@ -6,19 +6,20 @@ class GelNet:
     """ 
     GelNet regularizer for linear decoder [Sokolov2016]_.
     If P is set to Identity matrix, this is Elastic net.
-    d needs to be a {0,1}-matrix.
-    If lamda1 is 0, this is a L2 regularization. 
-    If lambda2 is 0, this is a L1 regularization.
+    d needs to be a `{0,1}`-matrix.
+    If ``lamda1`` is 0, this is a L2 regularization. 
+    If ``lambda2`` is 0, this is a L1 regularization.
     
     Needs to be sequentially used in training loop.
-    Example:
+
+    Example
         >>> loss = MSE(X_hat, X)
         # Compute L2 term
-        >>> loss += GelNet.quadratic_loss(self.decoder.weight)
+        >>> loss += GelNet.quadratic_update(self.decoder.weight)
         >>> loss.backward()
         >>> optimizer.step()
         # L1 proximal operator update
-        >>> GelNet.proxop_l1(self.decoder.weight)
+        >>> GelNet.proximal_update(self.decoder.weight)
     
     Parameters
     ----------
@@ -100,7 +101,19 @@ class GelNet:
             return 
 
 class LassoRegularizer:
-    """ Lasso (L1) regularizer for linear decoder """
+    """ 
+    Lasso (L1) regularizer for linear decoder.
+    Similar to [Rybakov2020]_ lasso regularization.
+
+    Parameters
+    ----------
+    lambda1
+        L1-regularization coefficient
+    d
+        Domain knowledge matrix (eg. mask)
+    lr
+        Learning rate
+    """
     def __init__(self, 
                 lambda1: float,
                 lr: float,

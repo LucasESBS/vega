@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class VegaSCVI(RNASeqMixin, VAEMixin, UnsupervisedTrainingMixin, BaseModelClass):
     """
-    VEGA: VAE Enhanced by Gene Annotations [Seninge21]_.
+    VEGA: VAE Enhanced by Gene Annotations [Seninge2021]_.
 
     Parameters
     ----------

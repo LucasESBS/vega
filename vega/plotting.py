@@ -240,7 +240,14 @@ def gmv_plot(adata, x, y, color=None, title=None, palette=None):
 
 def loss(model, plot_validation=True):
     """
-    Plot training loss and validation if plot_validation is True. 
+    Plot training loss and validation if plot_validation is True.
+
+    Parameters
+    ----------
+    model
+        VEGA model (trained)
+    plot_validation
+        Whether to plot validation loss as well
     """
     train_hist = model.epoch_history['train_loss']
     n_epochs = len(train_hist)
@@ -262,7 +269,7 @@ def rank_gene_weights(model, gmv_list, n_genes=10, color_in_set=True, n_panels_p
     Plot gene members of input GMVs according to their magnitude (abs(w)).
     Inspired by scanpy.pl.rank_gene_groups() API.
 
-    Parameters:
+    Parameters
     -----------
     model
         VEGA trained model

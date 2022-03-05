@@ -13,13 +13,22 @@ def setup_anndata(adata, batch_key=None, categorical_covariate_keys=None, copy=F
     """
     Creates VEGA fields in input Anndata object for mask.
     Also creates SCVI field which will be used for batch and covariates.
-    Args:
-        adata (Anndata): Scanpy single-cell object.
-        copy (bool): Whether to return a copy or change in place.
-        batch_key (str): Observation to be used as batch.
-        categorical_covariate_keys (list, str): Observation to use as covariate keys.
-    Return:
-        adata (Anndata): updated object if copy is True.
+
+    Parameters
+    ----------
+        adata
+            Scanpy single-cell object
+        copy
+            Whether to return a copy or change in place
+        batch_key
+            Observation to be used as batch
+        categorical_covariate_keys
+            Observation to use as covariate keys
+
+    Returns
+    -------
+        adata
+            updated object if copy is True
     """
     print('Running VEGA and SCVI setup...', flush=True)
     if copy:
@@ -43,15 +52,26 @@ def setup_anndata(adata, batch_key=None, categorical_covariate_keys=None, copy=F
 def create_mask(adata, gmt_paths=None, add_nodes=1, min_genes=0, max_genes=1000, copy=False):
     """ 
     Initialize mask M for GMV from one or multiple .gmt files.
-    Args:
-        adata (Anndata): Scanpy single-cell object.
-        gmt_paths (str or list): one or several paths to .gmt files.
-        add_nodes (int): Additional latent nodes for capturing additional variance.
-        min_genes (int): Minimum number of genes per GMV.
-        max_genes (int): Maximum number of genes per GMV.
-        copy (bool): Whether to return a copy of the updated Anndata object.
-    Return:
-        adata (Anndata): Scanpy single-cell object.
+
+    Parameters
+    ----------
+        adata
+            Scanpy single-cell object.
+        gmt_paths
+            One or several paths to .gmt files.
+        add_nodes
+            Additional latent nodes for capturing additional variance.
+        min_genes
+            Minimum number of genes per GMV.
+        max_genes
+            Maximum number of genes per GMV.
+        copy
+            Whether to return a copy of the updated Anndata object.
+
+    Returns
+    -------
+        adata
+            Scanpy single-cell object.
     """
     if copy:
         adata = adata.copy()
@@ -84,12 +104,20 @@ def _make_gmv_mask(feature_list, dict_gmv, add_nodes):
     """ 
     Creates a mask of shape [genes,GMVs] where (i,j) = 1 if gene i is in GMV j, 0 else.
     Note: dict_gmv should be an Ordered dict so that the ordering can be later interpreted.
-    Args:
-        feature_list (list): List of genes in single-cell dataset.
-        dict_gmv (OrderedDict): Dictionary of gene_module:genes.
-        add_nodes (int): Number of additional, fully connected nodes.
-    Return:
-        p_mask (np.array): Gene module mask
+
+    Parameters
+    ----------
+        feature_list
+            List of genes in single-cell dataset.
+        dict_gmv
+            Dictionary of gene_module:genes.
+        add_nodes
+            Number of additional, fully connected nodes.
+
+    Returns
+    -------
+        p_mask
+            Gene module mask
     """
     assert type(dict_gmv) == OrderedDict
     p_mask = np.zeros((len(feature_list), len(dict_gmv)))
@@ -106,11 +134,17 @@ def _make_gmv_mask(feature_list, dict_gmv, add_nodes):
 def _dict_to_gmt(dict_obj, path_gmt, sep='\t', second_col=True):
     """ 
     Write dictionary to gmt format.
-    Args:
-        dict_obj (dict): Dictionary with gene_module:[members]
-        path_gmt (str): Path to save gmt file
-        sep (str): Separator to use when writing file
-        second_col (bool): Whether to duplicate the first column        
+
+    Parameters
+    ----------
+        dict_obj
+            Dictionary with gene_module:[members]
+        path_gmt
+            Path to save gmt file
+        sep
+            Separator to use when writing file
+        second_col
+            Whether to duplicate the first column        
     """
     with open(path_gmt, 'w') as f:
         for k,v in dict_obj.items():
@@ -126,13 +160,21 @@ def _read_gmt(fname, sep='\t', min_g=0, max_g=5000):
     """
     Read GMT file into dictionary of gene_module:genes.
     min_g and max_g are optional gene set size filters.
-    Args:
-        fname (str): Path to gmt file
-        sep (str): Separator used to read gmt file.
-        min_g (int): Minimum of gene members in gene module
-        max_g (int): Maximum of gene members in gene module
-    Return:
-        dict_gmv (OrderedDict): Dictionary of gene_module:genes
+    
+    Parameters
+    ----------
+        fname
+            Path to gmt file
+        sep
+            Separator used to read gmt file.
+        min_g
+            Minimum of gene members in gene module
+        max_g
+            Maximum of gene members in gene module
+    Returns
+    -------
+        dict_gmv
+            Dictionary of gene_module:genes
     """
     dict_gmv = OrderedDict()
     with open(fname) as f:
@@ -147,12 +189,19 @@ def _read_gmt(fname, sep='\t', min_g=0, max_g=5000):
 def _anndata_loader(adata, batch_size, shuffle=False):
     """
     Load Anndata object into pytorch standard dataloader.
-    Args:
-        adata (AnnData): Scanpy Anndata object.
-        batch_size (int): Cells per batch.
-        shuffle (bool): Whether to shuffle data or not.
-    Return:
-        sc_dataloader (torch.DataLoader): Dataloader containing the data.
+
+    Parameters
+    ----------
+        adata
+            Scanpy Anndata object
+        batch_size
+            Cells per batch
+        shuffle
+            Whether to shuffle data or not
+    Returns
+    -------
+        sc_dataloader
+            Dataloader containing the data.
     """
     if sparse.issparse(adata.X):
         data = adata.X.A
@@ -165,12 +214,19 @@ def _anndata_loader(adata, batch_size, shuffle=False):
 def _anndata_splitter(adata, train_size):
     """
     Splits Anndata object into a training and test set. Test proportion is 1-train_size.
-    Args:
-        adata (Anndata): Scanpy Anndata object.
-        train_size (float): Proportion of whole dataset in training. Between 0 and 1.
-    Returns:
-        train_adata (Anndata): Training data subset.
-        test_adata (Anndata): Test data subset.
+
+    Parameters
+    ----------
+        adata
+            Scanpy Anndata object
+        train_size
+            Proportion of whole dataset in training. Between 0 and 1
+    Returns
+    -------
+        train_adata
+            Training data subset
+        test_adata
+            Test data subset
     """
     assert train_size != 0
     n = len(adata)
@@ -205,12 +261,19 @@ def _scvi_loader(adata, train_size, batch_size, use_gpu=False):
 def preprocess_anndata(adata, n_top_genes=5000, copy=False):
     """
     Simple (default) Scanpy preprocessing function before autoencoders.
-    Args:
-        adata (Anndata): Scanpy single-cell object.
-        n_top_genes (int): Number of highly variable genes to retain.
-        copy (bool): Return a copy or in place.
-    Return:
-        adata (Anndata): Preprocessed Anndata object.
+
+    Parameters
+    ----------
+        adata
+            Scanpy single-cell object
+        n_top_genes
+            Number of highly variable genes to retain
+        copy
+            Return a copy or in place
+    Returns
+    -------
+        adata
+            Preprocessed Anndata object
     """
     if copy:
         adata = adata.copy()

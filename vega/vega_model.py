@@ -39,33 +39,33 @@ class VEGA(torch.nn.Module):
 
         Parameters
         ----------
-            adata
-                scanpy single-cell object. Please run setup_anndata() before passing to VEGA.
-            gmt_paths
-                one or more paths to .gmt files for GMVs initialization.
-            add_nodes
-                additional fully-connected nodes in the mask.
-            min_genes
-                minimum gene size for GMVs.
-            max_genes
-                maximum gene size for GMVs.
-            positive_decoder
-                whether to constrain decoder to positive weights
-            encode_covariates
-                whether to encode covariates along gene expression
-            regularizer
-                which regularization strategy to use (l1, gelnet, mask). Default: mask.
-            reg_kwargs
-                parameters for regularizer.
-            **kwargs
-                use_cuda
-                    using CPU (False) or CUDA (True).
-                beta
-                    weight for KL-divergence.
-                dropout
-                    dropout rate in model.
-                z_dropout
-                    dropout rate for the latent space (for correlation).
+        adata
+            scanpy single-cell object. Please run setup_anndata() before passing to VEGA.
+        gmt_paths
+            one or more paths to .gmt files for GMVs initialization.
+        add_nodes
+            additional fully-connected nodes in the mask.
+        min_genes
+            minimum gene size for GMVs.
+        max_genes
+            maximum gene size for GMVs.
+        positive_decoder
+            whether to constrain decoder to positive weights
+        encode_covariates
+            whether to encode covariates along gene expression
+        regularizer
+            which regularization strategy to use (l1, gelnet, mask). Default: mask.
+        reg_kwargs
+            parameters for regularizer.
+        **kwargs
+            use_cuda
+                using CPU (False) or CUDA (True).
+            beta
+                weight for KL-divergence.
+            dropout
+                dropout rate in model
+            z_dropout
+                dropout rate for the latent space (for correlation).
         """
         super(VEGA, self).__init__()
         self.adata = adata
@@ -147,13 +147,13 @@ class VEGA(torch.nn.Module):
         Parameters
         ----------
         path
-            path to save directory.
+            path to save directory
         save_adata
-            whether to save the Anndata object in the save directory.
+            whether to save the Anndata object in the save directory
         save_history
-            whether to save the training history in the save directory.
+            whether to save the training history in the save directory
         save_regularizer_kwargs
-            whether to save regularizer hyperparameters (lambda, penalty matrix...) in the save directory.
+            whether to save regularizer hyperparameters (lambda, penalty matrix...) in the save directory
         """
         attr = inspect.getmembers(self, lambda a: not (inspect.isroutine(a)))
         attr = [a for a in attr if not (a[0].startswith("__") and a[0].endswith("__"))]
@@ -190,11 +190,11 @@ class VEGA(torch.nn.Module):
         Parameters
         ----------
         path 
-            path to save directory.
+            path to save directory
         adata
-            scanpy single cell object. 
+            scanpy single cell object
         device
-            CPU or CUDA.
+            CPU or CUDA
         """
         # Reload model attributes
         with open(os.path.join(path, 'vega_attr.pkl'), 'rb') as f:
@@ -227,7 +227,7 @@ class VEGA(torch.nn.Module):
         return model
 
     def _get_inference_input(self, tensors):
-        """ Parse tensor dictionary. From SCVI [Lopez2018]. """
+        """ Parse tensor dictionary. From SCVI [Lopez2018]_. """
         X = tensors[_CONSTANTS.X_KEY]
         batch_index = tensors[_CONSTANTS.BATCH_KEY]
 
@@ -238,7 +238,7 @@ class VEGA(torch.nn.Module):
         return input_dict
 
     def _get_generative_input(self, tensors, z):
-        """ Parse tensor dictionary for generative model. From SCVI [Lopez2018]. """
+        """ Parse tensor dictionary for generative model. From SCVI [Lopez2018]_. """
         batch_index = tensors[_CONSTANTS.BATCH_KEY]
 
         cat_key = _CONSTANTS.CAT_COVS_KEY
@@ -304,6 +304,7 @@ class VEGA(torch.nn.Module):
     def sample_latent(self, mu, logvar):
         """ 
         Sample latent space with reparametrization trick. First convert to std, sample normal(0,1) and get Z.
+
         Parameters
         ----------
         mu
@@ -394,7 +395,7 @@ class VEGA(torch.nn.Module):
     def differential_activity(self, groupby, adata=None, group1=None, group2=None, mode='change', delta=2., fdr_target=0.05, **kwargs):
         """
         Bayesian differential activity procedures for GMVs.
-        Similar to scVI [Lopez 2018] Bayesian DGE but for latent variables.
+        Similar to scVI [Lopez2018]_ Bayesian DGE but for latent variables.
         Differential results are saved in the adata object.
  
         Parameters
@@ -408,7 +409,7 @@ class VEGA(torch.nn.Module):
         group2
             outgroup(s).
         mode
-            differential activity mode. If 'vanilla', uses [Lopez2018], if 'change' uses [Boyeau2019].
+            differential activity mode. If 'vanilla', uses [Lopez2018], if 'change' uses [Boyeau2019]_.
         delta
             differential activity threshold for 'change' mode.
         fdr_target
