@@ -16,21 +16,10 @@ VEGA needs 2 things to analyze your data:
 * A GMT file specifying the gene module variables (GMVs) and gene membership, eg. from MSigDB
 
 ## Installation
-
+#### With pip
 With pip, you can run
 ```
 pip install vega
-```
-
-To install from source, you can clone the github repo
-```
-git clone https://github.com/LucasESBS/vega
-```
-
-and then from the vega directory run
-
-```
-python setup.py install
 ```
 
 ## Documentation and issues

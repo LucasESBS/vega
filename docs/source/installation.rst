@@ -12,18 +12,4 @@ To install with ``pip``, simply run::
 
     pip install vega
 
-With Github
------------
 
-To install VEGA, clone the `VEGA repo <https://github.com/LucasESBS/vega>`_ from Github as followed::
-
-    git clone https://github.com/LucasESBS/vega
-
-Then move to the vega directory and install vega with the ``setup.py`` file::
-
-    python setup.py install
-
-Dependencies
-------------
-
-VEGA dependencies are listed in the `requirements.txt file <https://github.com/LucasESBS/vega/blob/main/requirements.txt>`_.
