@@ -5,6 +5,10 @@ __pycache__
 /docs/build/
 /docs/source/tutorials/*.h5ad
 
+# Exclude test script and test gmt file
+!/tests/test_vega.py
+!/tests/test_gmt.gmt
+
 # Install related stuff
 .Python
 env/
