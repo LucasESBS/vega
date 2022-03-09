@@ -6,9 +6,11 @@ import inspect
 import pickle
 import collections
 import torch
+from typing import Union
 #import logging
 import numpy as np
 import pandas as pd
+from anndata import AnnData
 import torch.nn.functional as F
 from torch import nn, optim
 from vega.utils import *
@@ -24,15 +26,15 @@ from scvi import _CONSTANTS
 from vega.layers import SparseLayer, DecoderVEGA
 
 class VEGA(torch.nn.Module):
-    def __init__(self, adata,
-                gmt_paths=None, 
-                add_nodes=1,
-                min_genes=0,
-                max_genes=5000,
-                positive_decoder=True,
-                encode_covariates=False,
-                regularizer = 'mask',
-                reg_kwargs = None,
+    def __init__(self, adata: AnnData,
+                gmt_paths: Union[list,str] =None, 
+                add_nodes: int = 1,
+                min_genes: int = 0,
+                max_genes: int =5000,
+                positive_decoder: bool = True,
+                encode_covariates: bool = False,
+                regularizer: str = 'mask',
+                reg_kwargs: dict = None,
                 **kwargs):
         """ 
         Constructor for class VEGA (VAE Enhanced by Gene Annotations).
@@ -140,7 +142,12 @@ class VEGA(torch.nn.Module):
         else:
             return list(self.adata.uns['_vega']['gmv_names'])
 
-    def save(self, path, save_adata=False, save_history=False, overwrite=False, save_regularizer_kwargs=True):
+    def save(self,
+            path: str,
+            save_adata: bool = False,
+            save_history: bool = False,
+            overwrite: bool = False,
+            save_regularizer_kwargs: bool = True):
         """ 
         Save model parameters to input directory. Saving Anndata object and training history is optional.
 
@@ -183,7 +190,11 @@ class VEGA(torch.nn.Module):
         return
     
     @classmethod
-    def load(cls, path, adata=None, device=torch.device('cpu'), reg_kwargs=None):
+    def load(cls,
+            path: str,
+            adata: AnnData = None,
+            device: torch.device = torch.device('cpu'),
+            reg_kwargs: dict = None):
         """
         Load model from directory. If adata=None, try to reload Anndata object from saved directory.
 
@@ -325,7 +336,10 @@ class VEGA(torch.nn.Module):
         return eps
 
     @torch.no_grad()
-    def to_latent(self, adata=None, indices=None, return_mean=False):
+    def to_latent(self,
+                adata: AnnData = None,
+                indices: list = None,
+                return_mean: bool = False):
         """
         Project data into latent space. Inspired by SCVI.
         
@@ -355,7 +369,10 @@ class VEGA(torch.nn.Module):
         return np.array(torch.cat(latent))
 
     @torch.no_grad()
-    def generative(self, adata=None, indices=None, use_mean=True):
+    def generative(self,
+                    adata: AnnData = None,
+                    indices: list = None,
+                    use_mean: bool = True):
         """
         Generate new samples from input data (encode-decode).
 
@@ -392,16 +409,24 @@ class VEGA(torch.nn.Module):
         return mean_z
     
     @torch.no_grad()
-    def differential_activity(self, groupby, adata=None, group1=None, group2=None, mode='change', delta=2., fdr_target=0.05, **kwargs):
+    def differential_activity(self,
+                            groupby: str,
+                            adata: AnnData = None,
+                            group1: Union[str,list] = None,
+                            group2: Union[str,list] = None,
+                            mode: str = 'change',
+                            delta: float = 2.,
+                            fdr_target: float = 0.05,
+                            **kwargs):
         """
         Bayesian differential activity procedures for GMVs.
         Similar to scVI [Lopez2018]_ Bayesian DGE but for latent variables.
-        Differential results are saved in the adata object.
+        Differential results are saved in the adata object and returned as a DataFrame.
  
         Parameters
         ----------
         groupby
-            anndata object field to group cells (eg. 'cell type')
+            anndata object field to group cells (eg. `"cell type"`)
         adata
             scanpy single-cell object. If None, use Anndata attribute of VEGA.
         group1
@@ -409,13 +434,18 @@ class VEGA(torch.nn.Module):
         group2
             outgroup(s).
         mode
-            differential activity mode. If 'vanilla', uses [Lopez2018], if 'change' uses [Boyeau2019]_.
+            differential activity mode. If `"vanilla"`, uses [Lopez2018]_, if `"change"` uses [Boyeau2019]_.
         delta
-            differential activity threshold for 'change' mode.
+            differential activity threshold for `"change"` mode.
         fdr_target
             minimum FDR to consider gene as DE.
         **kwargs
             optional arguments of the bayesian_differential method.
+        
+        Returns
+        -------
+        Differential activity results
+            
         """
         # Check Anndata object
         if not adata and not self.adata:
@@ -467,16 +497,17 @@ class VEGA(torch.nn.Module):
         return result
     
     @torch.no_grad()    
-    def bayesian_differential(self, adata,
-                                cell_idx1, 
-                                cell_idx2, 
-                                n_samples=5000, 
-                                use_permutations=True, 
-                                n_permutations=5000,
-                                mode='change',
-                                delta=2.,
-                                alpha=0.66,
-                                random_seed=False):
+    def bayesian_differential(self,
+                                adata: AnnData,
+                                cell_idx1: list, 
+                                cell_idx2: list, 
+                                n_samples: int = 5000, 
+                                use_permutations: bool = True, 
+                                n_permutations: int = 5000,
+                                mode: int = 'change',
+                                delta: float = 2.,
+                                alpha: float = 0.66,
+                                random_seed: bool = False):
         """ 
         Run Bayesian differential expression in latent space.
         Returns Bayes factor of all factors.
@@ -496,9 +527,9 @@ class VEGA(torch.nn.Module):
         n_permutations
             number of permutations for MC integral.
         mode
-            differential activity test strategy. 'vanilla' corresponds to [Lopez2018], 'change' to [Boyeau2019].
+            differential activity test strategy. `"vanilla"` corresponds to [Lopez2018]_, `"change"` to [Boyeau2019]_.
         delta
-            for mode 'change', the differential threshold to be used.
+            for mode `"change"`, the differential threshold to be used.
         random_seed
             seed for reproducibility.
 
@@ -627,7 +658,14 @@ class VEGA(torch.nn.Module):
         mse = F.mse_loss(y_pred, y_true, reduction="sum")
         return torch.mean(mse + self.beta_*kld)
 
-    def train_vega(self, learning_rate=1e-4, n_epochs=500, train_size=1., batch_size=128, shuffle=True, use_gpu=False, **kwargs):
+    def train_vega(self,
+                    learning_rate: float = 1e-4,
+                    n_epochs: int = 500,
+                    train_size: float = 1.,
+                    batch_size: int = 128,
+                    shuffle: bool = True,
+                    use_gpu: bool = False,
+                    **kwargs):
         """ 
         Main method to train VEGA.
 

@@ -5,8 +5,8 @@ import numpy as np
 class GelNet:
     """ 
     GelNet regularizer for linear decoder [Sokolov2016]_.
-    If P is set to Identity matrix, this is Elastic net.
-    d needs to be a `{0,1}`-matrix.
+    If ``P`` is set to Identity matrix, this is Elastic net.
+    ``d`` needs to be a `{0,1}`-matrix.
     If ``lamda1`` is 0, this is a L2 regularization. 
     If ``lambda2`` is 0, this is a L1 regularization.
     

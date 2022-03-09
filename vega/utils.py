@@ -5,11 +5,16 @@ import scanpy as sc
 from scipy import sparse
 from scvi.data import setup_anndata as scvi_setup
 from scvi.dataloaders import DataSplitter
+from anndata import AnnData
 import vega
 import warnings
 from sklearn.mixture import GaussianMixture
+from typing import Union
 
-def setup_anndata(adata, batch_key=None, categorical_covariate_keys=None, copy=False):
+def setup_anndata(adata: AnnData,
+                batch_key: str = None,
+                categorical_covariate_keys: Union[str,list] = None,
+                copy: bool = False):
     """
     Creates VEGA fields in input Anndata object for mask.
     Also creates SCVI field which will be used for batch and covariates.
@@ -49,7 +54,12 @@ def setup_anndata(adata, batch_key=None, categorical_covariate_keys=None, copy=F
     if copy:
         return adata
 
-def create_mask(adata, gmt_paths=None, add_nodes=1, min_genes=0, max_genes=1000, copy=False):
+def create_mask(adata: AnnData,
+                gmt_paths: Union[str,list] = None,
+                add_nodes: int = 1,
+                min_genes: int = 0,
+                max_genes: int = 1000,
+                copy: bool = False):
     """ 
     Initialize mask M for GMV from one or multiple .gmt files.
 
@@ -258,7 +268,9 @@ def _scvi_loader(adata, train_size, batch_size, use_gpu=False):
     
 
 
-def preprocess_anndata(adata, n_top_genes=5000, copy=False):
+def preprocess_anndata(adata: AnnData,
+                        n_top_genes:int = 5000,
+                        copy: bool = False):
     """
     Simple (default) Scanpy preprocessing function before autoencoders.
 

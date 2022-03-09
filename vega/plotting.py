@@ -7,20 +7,23 @@ import numpy as np
 import pandas as pd
 from scanpy.plotting import embedding
 from scanpy import settings
+from anndata import AnnData
 from adjustText import adjust_text
+from vega import VEGA
+from typing import Union
 
-def volcano(adata,
-            group1,
-            group2,
-            sig_lvl=3.,
-            metric_lvl=3.,
-            annotate_gmv=None,
-            s=10,
-            fontsize=10,
-            textsize=8,
-            figsize = None,
-            title=False,
-            save=False):
+def volcano(adata: AnnData,
+            group1: str,
+            group2: str,
+            sig_lvl: float = 3.,
+            metric_lvl: float = 3.,
+            annotate_gmv: Union[str,list] = None,
+            s:int = 10,
+            fontsize: int = 10,
+            textsize: int = 8,
+            figsize: Union[tuple,list] = None,
+            title: str = False,
+            save: Union[str,bool] = False):
     """
     Plot Differential GMV results.
     Please run the Bayesian differential acitvity method of VEGA before plotting ("model.differential_activity()")
@@ -107,7 +110,14 @@ def volcano(adata,
     plt.show()
 
 
-def gmv_embedding(adata, x, y, color=None, palette=None, title=None, save=False, sct_kwds=None):
+def gmv_embedding(adata: AnnData,
+                    x: str,
+                    y: str, 
+                    color: str = None,
+                    palette: str = None,
+                    title: str = None,
+                    save: Union[str,bool] = False,
+                    sct_kwds: dict = None):
     """ 
     2-D scatter plot in GMV space.
 
@@ -193,7 +203,12 @@ def _get_color_values(adata, var, palette):
             return color_vec
 
 
-def gmv_plot(adata, x, y, color=None, title=None, palette=None):
+def gmv_plot(adata: AnnData,
+                x: str,
+                y: str,
+                color: str = None,
+                title: str = None,
+                palette: str = None):
     """
     GMV embedding plot, but using the Scanpy plotting API.
     
@@ -238,7 +253,8 @@ def gmv_plot(adata, x, y, color=None, title=None, palette=None):
     plt.show()
     return
 
-def loss(model, plot_validation=True):
+def loss(model: VEGA, 
+        plot_validation: bool = True):
     """
     Plot training loss and validation if plot_validation is True.
 
@@ -264,7 +280,14 @@ def loss(model, plot_validation=True):
     plt.show()
     return
 
-def rank_gene_weights(model, gmv_list, n_genes=10, color_in_set=True, n_panels_per_row=3, fontsize=8, star_names=[], save=False):
+def rank_gene_weights(model: VEGA, 
+                        gmv_list: Union[str,list],
+                        n_genes: int = 10,
+                        color_in_set: bool = True,
+                        n_panels_per_row: int = 3,
+                        fontsize: int = 8,
+                        star_names: list = [],
+                        save: Union[bool,str] = False):
     """
     Plot gene members of input GMVs according to their magnitude (abs(w)).
     Inspired by scanpy.pl.rank_gene_groups() API.
@@ -360,26 +383,38 @@ def rank_gene_weights(model, gmv_list, n_genes=10, color_in_set=True, n_panels_p
     return
 
 
-def weight_heatmap(model, 
-                cluster=True, 
-                cmap='viridis', 
-                display_gmvs='all', 
-                display_genes='all',
-                title=None,
-                figsize=None,
-                save=False,
-                hm_kwargs=None):
+def weight_heatmap(model: VEGA, 
+                cluster: bool = True, 
+                cmap: str = 'viridis', 
+                display_gmvs: Union[str,list] = 'all', 
+                display_genes: Union[str,list] = 'all',
+                title: str = None,
+                figsize: Union[tuple,list]=None,
+                save: Union[bool,str] = False,
+                hm_kwargs: dict = None):
     """
     Heatmap plots of weights.
 
     Parameters
     ----------
+    model
+        VEGA trained model
     cluster
-        If True, use hierarchical clustering (seaborn.clustermap)
+        if True, use hierarchical clustering (seaborn.clustermap)
     cmap
         colormap to use
     display_gmvs
-        If all, display all latent variables weights. Else (list) only subset.
+        if all, display all latent variables weights. Else (list) only the subset
+    display_genes
+        if all, display all gene weights of GMV. Else (list) only the subset
+    title
+        figure title
+    figsize
+        figure size
+    save
+        path to save figure
+    hm_kwargs
+        kwargs for sns.clustermap or sns.heatmap (depending on if ``cluster=True``)
     """
     if cluster:
         fn = sns.clustermap
