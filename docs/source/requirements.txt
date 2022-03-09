@@ -3,6 +3,7 @@ sphinx>=2.0.1
 nbsphinx
 sphinx-autodoc-typehints
 nbsphinx-link
+sphinx-design
 ipython
 furo>=2020.12.30b24
 typing_extensions; python_version < '3.8'
