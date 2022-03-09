@@ -3,6 +3,7 @@ tests/
 /tutorials/train_pbmc.h5ad
 __pycache__
 /docs/build/
+/docs/source/tutorials/*.h5ad
 
 # Install related stuff
 .Python
