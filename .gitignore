@@ -1,4 +1,4 @@
-tests/
+/tests/*
 .ipynb_checkpoints/
 /tutorials/train_pbmc.h5ad
 __pycache__
