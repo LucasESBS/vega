@@ -10,6 +10,6 @@ With PyPI
 
 To install with ``pip``, simply run::
 
-    pip install vega
+    pip install scvega
 
 

@@ -19,7 +19,13 @@ VEGA needs 2 things to analyze your data:
 #### With pip
 With pip, you can run
 ```
-pip install vega
+pip install scvega
+```
+
+## Usage
+In python, use
+```
+import vega
 ```
 
 ## Documentation and issues
