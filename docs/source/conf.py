@@ -13,7 +13,7 @@
 import os
 import sys
 import sphinx_rtd_theme
-#import vega
+import vega
 
 sys.path.insert(0, os.path.abspath('../..'))
 sys.setrecursionlimit(1500)
