@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scvega"
-version = "0.0.2"
+version = "0.0.3"
 description = "VEGA: a VAE Enhanced by Gene Annotations for interpretable scRNA-seq deep learning"
 authors = ["Lucas Seninge <lseninge@ucsc.edu>"]
 packages = [
