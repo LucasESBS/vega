@@ -9,7 +9,8 @@ from scanpy.plotting import embedding
 from scanpy import settings
 from anndata import AnnData
 from adjustText import adjust_text
-from vega import VEGA
+#from vega import VEGA
+from _vega import VEGA
 from typing import Union
 
 def volcano(adata: AnnData,

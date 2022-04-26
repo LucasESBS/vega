@@ -13,11 +13,12 @@ https://github.com/YosefLab/scvi-tools/blob/8f5a9cc362325abbb7be1e07f9523cfcf7e5
 
 import math
 import numpy
+import rich
 from typing import Iterable, List
 import torch
 import torch.nn as nn
 from scvi.nn import FCLayers, one_hot
-from .regularizers import GelNet, LassoRegularizer
+from regularizers import GelNet, LassoRegularizer
 
 
 
@@ -40,30 +41,33 @@ class DecoderVEGA(nn.Module):
     """
     def __init__(self,
                 mask: numpy.ndarray,
+                n_continuous_cov: int = 0,
                 n_cat_list: Iterable[int] = None, 
                 regularizer: str = 'mask',
                 positive_decoder: bool = True,
                 reg_kwargs=None):
         super(DecoderVEGA, self).__init__()
-        self.n_input = mask.shape[0]
-        self.n_output = mask.shape[1]
         self.reg_method = regularizer
+        self.positive_decoder = positive_decoder
+        n_input = mask.shape[0] + n_continuous_cov
+        n_output = mask.shape[1]
         if reg_kwargs and (reg_kwargs.get('d', None) is None):
             reg_kwargs['d'] = ~mask.T.astype(bool)
         if reg_kwargs is None:
             reg_kwargs = {}
         if regularizer=='mask':
-            print('Using masked decoder', flush=True)
+            rich.print('Using masked decoder', flush=True)
             self.decoder = SparseLayer(mask,
                                         n_cat_list=n_cat_list,
+                                        n_continuous_cov=n_continuous_cov,
                                         use_batch_norm=False,
                                         use_layer_norm=False,
                                         bias=True,
                                         dropout_rate=0)
         elif regularizer=='gelnet':
-            print('Using GelNet-regularized decoder', flush=True)
-            self.decoder = FCLayers(n_in=self.n_input,
-                                    n_out=self.n_output,
+            rich.print('Using GelNet-regularized decoder', flush=True)
+            self.decoder = FCLayers(n_in=n_input,
+                                    n_out=n_output,
                                     n_layers=1,
                                     use_batch_norm=False,
                                     use_activation=False,
@@ -72,9 +76,9 @@ class DecoderVEGA(nn.Module):
                                     dropout_rate=0)
             self.regularizer = GelNet(**reg_kwargs)
         elif regularizer=='l1':
-            print('Using L1-regularized decoder', flush=True)
-            self.decoder = FCLayers(n_in=self.n_input,
-                                    n_out=self.n_output,
+            rich.print('Using L1-regularized decoder', flush=True)
+            self.decoder = FCLayers(n_in=n_input,
+                                    n_out=n_output,
                                     n_layers=1,
                                     use_batch_norm=False,
                                     use_activation=False,
@@ -100,9 +104,9 @@ class DecoderVEGA(nn.Module):
     def quadratic_penalty(self):
         """ Returns loss associated with quadratic penalty of regularizer """
         if self.reg_method == 'mask':
-            return torch.tensor(0)
+            return torch.tensor(0).to(dtype=torch.float32)
         else:
-            return self.regularizer.quadratic_update(self._get_weights())
+            return self.regularizer.quadratic_update(self._get_weights()).to(dtype=torch.float32)
 
     def proximal_update(self):
         """ Directly updates weights using proximal operator (for non-smooth regularizer) """
@@ -250,7 +254,6 @@ class SparseLayer(nn.Module):
 
         """
         one_hot_cat_list = []  # for generality in this list many indices useless.
-
         if len(self.n_cat_list) > len(cat_list):
             raise ValueError(
                 "nb. categorical args provided doesn't match init. params."

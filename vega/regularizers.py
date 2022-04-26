@@ -1,8 +1,22 @@
 import torch
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
 
-class GelNet:
+class Regularizer(metaclass=ABCMeta):
+    """
+    Base class for regularizer implementation.
+    """
+    @abstractmethod
+    def quadratic_update(self, weights):
+        pass
+
+    @abstractmethod
+    def proximal_update(self, weights):
+        pass
+        
+
+class GelNet(Regularizer):
     """ 
     GelNet regularizer for linear decoder [Sokolov2016]_.
     If ``P`` is set to Identity matrix, this is Elastic net.
@@ -41,6 +55,7 @@ class GelNet:
                  d: np.ndarray = None,
                  lr: float = 1e-3,
                  use_gpu: bool = False):
+        super(GelNet).__init__()
         self.l1 = lambda1
         self.l2 = lambda2
         if P is not None:
@@ -100,9 +115,9 @@ class GelNet:
             weights.data = w_update
             return 
 
-class LassoRegularizer:
+class LassoRegularizer(Regularizer):
     """ 
-    Lasso (L1) regularizer for linear decoder.
+    Lasso (L1) regularizer.
     Similar to [Rybakov2020]_ lasso regularization.
 
     Parameters
@@ -119,6 +134,7 @@ class LassoRegularizer:
                 lr: float,
                 d: np.ndarray = None,
                 use_gpu: bool = False):
+        super(LassoRegularizer).__init__()
         self.l1 = lambda1
         self.lr = lr
         if d is not None:
@@ -166,5 +182,15 @@ class LassoRegularizer:
             weights.data = w_update
             return 
     
-         
+class GroupLasso(Regularizer):
+    """
+    Sparsity-inducing group prior.
+    """
+    pass
+
+class GroupL2(Regularizer):
+    """
+    Similar to Automatic Relevance Determination (ARD) prior.
+    """
+    pass      
                  
