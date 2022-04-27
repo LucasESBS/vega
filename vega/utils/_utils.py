@@ -1,58 +1,16 @@
 from collections import OrderedDict
+from collections.abc import Iterable as IterableClass
 import torch
 import numpy as np
+import pandas as pd
 import scanpy as sc
 from scipy import sparse
-#from scvi.data import setup_anndata as scvi_setup
-#from scvi.dataloaders import DataSplitter
 from anndata import AnnData
-#import vega
 import warnings
 from sklearn.mixture import GaussianMixture
 from typing import Union
-
-def setup_anndata(adata: AnnData,
-                batch_key: str = None,
-                categorical_covariate_keys: Union[str,list] = None,
-                copy: bool = False):
-    """
-    Creates VEGA fields in input Anndata object for mask.
-    Also creates SCVI field which will be used for batch and covariates.
-
-    Parameters
-    ----------
-        adata
-            Scanpy single-cell object
-        copy
-            Whether to return a copy or change in place
-        batch_key
-            Observation to be used as batch
-        categorical_covariate_keys
-            Observation to use as covariate keys
-
-    Returns
-    -------
-        adata
-            updated object if copy is True
-    """
-    print('Running VEGA and SCVI setup...', flush=True)
-    if copy:
-        adata = adata.copy()
-
-    if adata.is_view:
-        raise ValueError(
-            "Current adata object is a View. Please run `adata = adata.copy()` or use copy=True"
-        )
-    
-    adata.uns['_vega'] = {}
-    adata.uns['_vega']['version'] = vega.__version__
-    # Use scvi setup to get batch keys and covariates
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        scvi_setup(adata, batch_key=batch_key, categorical_covariate_keys=categorical_covariate_keys)
-
-    if copy:
-        return adata
+from _differential import DifferentialActivityComputation
+from scvi.utils import track
 
 def create_mask(adata: AnnData,
                 gmt_paths: Union[str,list] = None,
@@ -196,78 +154,6 @@ def _read_gmt(fname, sep='\t', min_g=0, max_g=5000):
                 dict_gmv[val[0]] = val[2:]
     return dict_gmv
 
-def _anndata_loader(adata, batch_size, shuffle=False):
-    """
-    Load Anndata object into pytorch standard dataloader.
-
-    Parameters
-    ----------
-        adata
-            Scanpy Anndata object
-        batch_size
-            Cells per batch
-        shuffle
-            Whether to shuffle data or not
-    Returns
-    -------
-        sc_dataloader
-            Dataloader containing the data.
-    """
-    if sparse.issparse(adata.X):
-        data = adata.X.A
-    else:
-        data = adata.X
-    data = torch.Tensor(data)
-    sc_dataloader = torch.utils.data.DataLoader(data, shuffle=shuffle, batch_size=batch_size)
-    return sc_dataloader
-
-def _anndata_splitter(adata, train_size):
-    """
-    Splits Anndata object into a training and test set. Test proportion is 1-train_size.
-
-    Parameters
-    ----------
-        adata
-            Scanpy Anndata object
-        train_size
-            Proportion of whole dataset in training. Between 0 and 1
-    Returns
-    -------
-        train_adata
-            Training data subset
-        test_adata
-            Test data subset
-    """
-    assert train_size != 0
-    n = len(adata)
-    n_train = int(train_size*n)
-    #n_test = n - n_train
-    perm_idx = np.random.permutation(n)
-    train_idx = perm_idx[:n_train]
-    test_idx = perm_idx[n_train:]
-    train_adata = adata.copy()[train_idx,:]
-    if len(test_idx) != 0:
-        test_adata = adata.copy()[test_idx,:]
-    else:
-        test_adata = False
-    return train_adata, test_adata
-    
-
-def _scvi_loader(adata, train_size, batch_size, use_gpu=False):
-    """
-    SCVI splitter. Returs SCVI loader for train and test set.
-    """
-    data_splitter = DataSplitter(
-            adata,
-            train_size=train_size,
-            validation_size=1.-train_size,
-            batch_size=batch_size,
-            use_gpu=use_gpu)
-    train_dl, test_dl, _ = data_splitter()
-    return train_dl, test_dl
-    
-
-
 def preprocess_anndata(adata: AnnData,
                         n_top_genes:int = 5000,
                         copy: bool = False):
@@ -298,6 +184,86 @@ def preprocess_anndata(adata: AnnData,
     adata = adata[:, adata.var.highly_variable]
     if copy:
         return adata
+
+
+def _da_core(
+    adata_manager,
+    model_fn,
+    groupby,
+    group1,
+    group2,
+    idx1,
+    idx2,
+    col_names,
+    mode,
+    delta,
+    change_fn,
+    fdr,
+    silent,
+    **kwargs,
+):
+    """Internal function for differential activity interface."""
+    adata = adata_manager.adata
+    if group1 is None and idx1 is None:
+        group1 = adata.obs[groupby].astype("category").cat.categories.tolist()
+        if len(group1) == 1:
+            raise ValueError(
+                "Only a single group in the data. Can't run DA on a single group."
+            )
+
+    if not isinstance(group1, IterableClass) or isinstance(group1, str):
+        group1 = [group1]
+
+    # make a temp obs key using indices
+    temp_key = None
+    if idx1 is not None:
+        obs_col, group1, group2 = _prepare_obs(idx1, idx2, adata)
+        temp_key = "_vega_temp_da"
+        adata.obs[temp_key] = obs_col
+        groupby = temp_key
+
+    df_results = []
+    dc = DifferentialActivityComputation(model_fn, adata_manager)
+    for g1 in track(
+        group1,
+        description="DA...",
+        disable=silent,
+    ):
+        cell_idx1 = (adata.obs[groupby] == g1).to_numpy().ravel()
+        if group2 is None:
+            cell_idx2 = ~cell_idx1
+        else:
+            cell_idx2 = (adata.obs[groupby] == group2).to_numpy().ravel()
+
+        all_info = dc.get_bayes_factors(
+            cell_idx1,
+            cell_idx2,
+            mode=mode,
+            delta=delta,
+            **kwargs,
+        )
+
+        res = pd.DataFrame(all_info, index=col_names)
+        sort_key = "proba_da" if mode == "change" else "bayes_factor"
+        res = res.sort_values(by=sort_key, ascending=False)
+        if mode == "change":
+            res["is_da_fdr_{}".format(fdr)] = _fdr_de_prediction(
+                res["proba_da"], fdr=fdr
+            )
+        if idx1 is None:
+            g2 = "Rest" if group2 is None else group2
+            res["comparison"] = "{} vs {}".format(g1, g2)
+            res["group1"] = g1
+            res["group2"] = g2
+        df_results.append(res)
+
+    if temp_key is not None:
+        del adata.obs[temp_key]
+
+    result = pd.concat(df_results, axis=0)
+
+    return result
+
 
 def _estimate_delta(metric_means, min_threshold=1., coef=0.6):
     """

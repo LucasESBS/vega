@@ -11,12 +11,13 @@ from scvi.data import AnnDataManager
 from scvi.data.fields import CategoricalObsField, LayerField
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
 from _training_mixin import RegularizedTrainingMixin
+from _latentmixin import LatentMixin
 from scvi.utils import setup_anndata_dsp
 
 from _vegavae import VEGAVAE
 from _utils import create_mask
 
-class VEGA(VAEMixin, RegularizedTrainingMixin, BaseModelClass):
+class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
     """
     Implementation of VEGA: VAE Enhanced by Gene Annotations using scvi-tools probabilistic API.
     """
