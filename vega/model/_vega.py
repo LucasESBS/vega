@@ -8,7 +8,7 @@ from anndata import AnnData
 from scipy import stats
 from scvi import REGISTRY_KEYS
 from scvi.data import AnnDataManager
-from scvi.data.fields import CategoricalObsField, LayerField
+from scvi.data.fields import CategoricalObsField, LayerField, CategoricalJointObsField, NumericalJointObsField
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
 from scvi.utils import setup_anndata_dsp
 from scvi._compat import Literal
@@ -132,6 +132,12 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
             LayerField(REGISTRY_KEYS.X_KEY, None, is_count_data=False),
             CategoricalObsField(REGISTRY_KEYS.BATCH_KEY, batch_key),
             CategoricalObsField(REGISTRY_KEYS.LABELS_KEY, labels_key),
+            CategoricalJointObsField(
+                REGISTRY_KEYS.CAT_COVS_KEY, categorical_covariate_keys
+            ),
+            NumericalJointObsField(
+                REGISTRY_KEYS.CONT_COVS_KEY, continuous_covariate_keys
+            ),
         ]
         adata_manager = AnnDataManager(
             fields=anndata_fields, setup_method_args=setup_method_args
