@@ -8,7 +8,7 @@ from torch.distributions import Normal
 from torch.distributions import kl_divergence as kl
 from typing import Callable, Iterable, Optional
 
-from _base_components import DecoderVEGA
+from vega.utils import DecoderVEGA
 
 
 class VEGAVAE(BaseModuleClass):

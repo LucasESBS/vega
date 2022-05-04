@@ -4,7 +4,7 @@ import numpy as np
 
 from scvi.dataloaders import DataSplitter
 from scvi.train import TrainRunner #TrainingPlan, TrainRunner
-from _trainingplans import RegularizedTrainingPlan
+from ._trainingplans import RegularizedTrainingPlan
 
 class RegularizedTrainingMixin:
     """Unsupervised train method for regularized VAE."""

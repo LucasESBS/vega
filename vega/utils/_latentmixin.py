@@ -10,7 +10,7 @@ import torch
 from anndata import AnnData
 
 from scvi._compat import Literal
-from _utils import _da_core
+from ._utils import _da_core
 
 logger = logging.getLogger(__name__)
 

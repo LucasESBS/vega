@@ -18,7 +18,8 @@ from typing import Iterable, List
 import torch
 import torch.nn as nn
 from scvi.nn import FCLayers, one_hot
-from regularizers import GelNet, LassoRegularizer
+from scvi._compat import Literal
+from ._regularizers import GelNet, LassoRegularizer
 
 
 
@@ -69,6 +70,7 @@ class DecoderVEGA(nn.Module):
             self.decoder = FCLayers(n_in=n_input,
                                     n_out=n_output,
                                     n_layers=1,
+                                    n_cat_list=n_cat_list,
                                     use_batch_norm=False,
                                     use_activation=False,
                                     use_layer_norm=False,
@@ -80,6 +82,7 @@ class DecoderVEGA(nn.Module):
             self.decoder = FCLayers(n_in=n_input,
                                     n_out=n_output,
                                     n_layers=1,
+                                    n_cat_list=n_cat_list,
                                     use_batch_norm=False,
                                     use_activation=False,
                                     use_layer_norm=False,
@@ -145,44 +148,123 @@ class DecoderVEGACount(nn.Module):
     bias
         whether to use a bias parameter in the linear decoder 
     """
-    def __init__(self, 
-                mask,
-                n_cat_list: Iterable[int] = None,
+    def __init__(self,
+                mask: numpy.ndarray,
                 n_continuous_cov: int = 0,
+                n_cat_list: Iterable[int] = None,
+                scale_activation: Literal["softmax", "softplus"] = "softmax",
+                regularizer: str = 'mask',
+                positive_decoder: bool = True,
+                reg_kwargs=None,
                 use_batch_norm: bool = False,
                 use_layer_norm: bool = False,
-                bias: bool = False
+                bias: bool = False, 
                 ):
         super(DecoderVEGACount, self).__init__()
-        self.n_input = mask.shape[1]
-        self.n_output = mask.shape[0]
-        # Mean and dropout decoder - dropout is fully connected
-        self.px_scale = SparseLayer(
-            mask=mask,
-            n_cat_list=n_cat_list,
-            n_continuous_cov = n_continuous_cov,
-            use_batch_norm=use_batch_norm,
-            use_layer_norm=use_layer_norm,
-            bias=bias,
-            dropout_rate=0)
-        self.px_dropout = SparseLayer(
-            mask=mask,
-            n_cat_list=n_cat_list,
-            n_continuous_cov = n_continuous_cov,
-            use_batch_norm=use_batch_norm,
-            use_layer_norm=use_layer_norm,
-            bias=bias,
-            dropout_rate=0)
+        self.reg_method = regularizer
+        self.positive_decoder = positive_decoder
+        n_input = mask.shape[0] + n_continuous_cov
+        n_output = mask.shape[1]
+        if reg_kwargs and (reg_kwargs.get('d', None) is None):
+            reg_kwargs['d'] = ~mask.T.astype(bool)
+        if reg_kwargs is None:
+            reg_kwargs = {}
+        if regularizer=='mask':
+            rich.print('Using masked scale decoder', flush=True)
+            self.px_decoder = SparseLayer(mask,
+                                     n_cat_list=n_cat_list,
+                                     n_continuous_cov=n_continuous_cov,
+                                     use_batch_norm=use_batch_norm,
+                                     use_layer_norm=use_layer_norm,
+                                     bias=bias,
+                                     dropout_rate=0)
+        elif regularizer=='gelnet':
+            rich.print('Using GelNet-regularized scale decoder', flush=True)
+            self.px_decoder = FCLayers(n_in=n_input,
+                                  n_out=n_output,
+                                  n_layers=1,
+                                  n_cat_list=n_cat_list,
+                                  use_batch_norm=use_batch_norm,
+                                  use_activation=False,
+                                  use_layer_norm=use_layer_norm,
+                                  bias=bias,
+                                  dropout_rate=0)
+            self.regularizer = GelNet(**reg_kwargs)
+        elif regularizer=='l1':
+            rich.print('Using L1-regularized scale decoder', flush=True)
+            self.px_decoder = FCLayers(n_in=n_input,
+                                  n_out=n_output,
+                                  n_layers=1,
+                                  n_cat_list=n_cat_list,
+                                  use_batch_norm=use_batch_norm,
+                                  use_activation=False,
+                                  use_layer_norm=use_layer_norm,
+                                  bias=bias,
+                                  dropout_rate=0)
+            self.regularizer = LassoRegularizer(**reg_kwargs)
+        else:
+            raise ValueError("Regularizer not recognized. Choose one of ['mask', 'gelnet', 'l1']")
+
+        # Activation
+        if scale_activation == "softmax":
+            self.px_scale_activation = nn.Softmax(dim=-1)
+        elif scale_activation == "softplus":
+            self.px_scale_activation = nn.Softplus()
+        
+        # Dropout params 
+        self.px_dropout = FCLayers(n_in=n_input,
+                                  n_out=n_output,
+                                  n_layers=1,
+                                  n_cat_list=n_cat_list,
+                                  use_batch_norm=use_batch_norm,
+                                  use_activation=False,
+                                  use_layer_norm=use_layer_norm,
+                                  bias=bias,
+                                  dropout_rate=0)
 
     def forward(self, dispersion: str, z: torch.Tensor, library: torch.Tensor, *cat_list: int):
-        """ Forward pass through VEGA's decoder """
-        raw_px_scale = self.px_scale(z, *cat_list)
-        px_scale = torch.softmax(raw_px_scale, dim=-1)
+        """ Forward pass through VEGA's count decoder """
+        px_scale = self.px_decoder(z, *cat_list)
+        px_scale = self.px_scale_activation(px_scale)
         px_dropout = self.px_dropout(z, *cat_list)
         px_rate = torch.exp(library) * px_scale
         px_r = None
 
         return px_scale, px_r, px_rate, px_dropout
+
+
+    def _get_weights(self):
+        """ Returns weight matrix of linear scale decoder (for regularization purposes)"""
+        if isinstance(self.px_decoder, SparseLayer):
+            w = self.px_decoder.sparse_layer[0].weight
+        elif isinstance(self.px_decoder, FCLayers):
+            w = self.px_decoder.fc_layers[0][0].weight
+        return w
+
+    def quadratic_penalty(self):
+        """ Returns loss associated with quadratic penalty of regularizer """
+        if self.reg_method == 'mask':
+            return torch.tensor(0).to(dtype=torch.float32)
+        else:
+            return self.regularizer.quadratic_update(self._get_weights()).to(dtype=torch.float32)
+
+    def proximal_update(self):
+        """ Directly updates weights using proximal operator (for non-smooth regularizer) """
+        if self.reg_method == 'mask':
+            return
+        else:
+            self.regularizer.proximal_update(self._get_weights())
+            return
+
+    def _positive_weights(self, use_softplus=False):
+        """ Set negative weights to 0 if positive_decoder is True """
+        w = self._get_weights()
+        if use_softplus:
+            w.data = nn.functional.softplus(w.data)
+        else:
+            w.data = w.data.clamp(0)
+        return 
+
     
 class SparseLayer(nn.Module):
     """

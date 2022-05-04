@@ -6,7 +6,7 @@ from scvi._compat import Literal
 from typing import Dict, Iterable, Optional, Sequence, Union
 import torch
 from ._vegamodule import SparseVAE
-from vega.utils import *
+from ..utils import *
 
 logger = logging.getLogger(__name__)
 

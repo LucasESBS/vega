@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, List
 
 import numpy as np
 import pandas as pd
@@ -8,19 +8,30 @@ from anndata import AnnData
 from scipy import stats
 from scvi import REGISTRY_KEYS
 from scvi.data import AnnDataManager
-from scvi.data.fields import CategoricalObsField, LayerField
+from scvi.data.fields import (
+    CategoricalJointObsField,
+    CategoricalObsField,
+    LayerField,
+    NumericalJointObsField,
+    NumericalObsField,
+)
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
+from scvi.model._utils import _init_library_size
 from scvi.utils import setup_anndata_dsp
 from scvi._compat import Literal
 
+#from _vegavae import VEGAVAE
+#from _utils import create_mask
+
 from vega.utils import create_mask, LatentMixin, RegularizedTrainingMixin
-from vega.module import VEGAVAE
+from vega.module import VEGAVAECount
 
 
 
-class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
+class VEGASCVI(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
     """
     Implementation of VEGA: VAE Enhanced by Gene Annotations using scvi-tools probabilistic API.
+    This model implements a version of VEGA modelling raw count data rather than log-normalized, akin to SCVI modeling.
     """
     def __init__(
         self,
@@ -32,6 +43,8 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
         min_genes: int = 0,
         max_genes: int =5000,
         positive_decoder: bool = True,
+        dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene",
+        gene_likelihood: Literal["zinb", "nb", "poisson"] = "nb",
         latent_distribution: Literal["normal", "ln"] = "normal",
         regularizer: str = 'mask',
         reg_kwargs: dict = None,
@@ -39,7 +52,7 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
         z_dropout: float = 0.,
         **model_kwargs,
     ):
-        super(VEGA, self).__init__(adata)
+        super(VEGASCVI, self).__init__(adata)
         
         # get batch and covariates infos
         n_cats_per_cov = (
@@ -50,6 +63,14 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
             else None
         )
         n_batch = self.summary_stats.n_batch
+        use_size_factor_key = (
+            REGISTRY_KEYS.SIZE_FACTOR_KEY in self.adata_manager.data_registry
+        )
+        library_log_means, library_log_vars = None, None
+        if not use_size_factor_key:
+            library_log_means, library_log_vars = _init_library_size(
+                self.adata_manager, n_batch
+            )
 
         # VEGA attributes -- old see if needed
         self.add_nodes_ = add_nodes
@@ -59,7 +80,6 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
         self.regularizer_ = regularizer
         self.reg_kwargs = reg_kwargs
 
-
         # Check for setup and mask existence
         if '_vega' not in self.adata.uns.keys():
             raise ValueError('Please run vega.utils.setup_anndata(adata) before initializing VEGA.')
@@ -68,9 +88,6 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
         elif gmt_paths:
             create_mask(self.adata, gmt_paths, add_nodes, self.min_genes_, self.max_genes_)
             
-        #self.gmv_mask = self.adata.uns['_vega']['mask'] 
-        #self.n_gmvs = self.gmv_mask.shape[1]
-        #self.n_genes = self.gmv_mask.shape[0]
        
         gmv_mask = self.adata.uns['_vega']['mask'] 
         n_gmvs = gmv_mask.shape[1]
@@ -78,7 +95,7 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
         
         # For now don't worry about regularizer, just assume its mask
         # TO DO: Add batch, labels, continuous and cat covs to VAE
-        self.module = VEGAVAE(
+        self.module = VEGAVAECount(
             mask=gmv_mask,
             n_batch=n_batch,
             n_labels=self.summary_stats.n_labels,
@@ -88,15 +105,20 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
             n_layers=n_layers,
             dropout_rate=dropout_rate,
             positive_decoder=positive_decoder,
-            latent_distribution=latent_distribution,
             regularizer=regularizer,
             reg_kwargs=reg_kwargs,
+            dispersion=dispersion,
+            gene_likelihood=gene_likelihood,
+            latent_distribution=latent_distribution,
+            use_size_factor_key=use_size_factor_key,
+            library_log_means=library_log_means,
+            library_log_vars=library_log_vars,
             **model_kwargs,
         )
         self._model_summary_string = (
-            "VEGA model with following parameters: \nn_GMVs: {}, n_layers: {}, n_hidden: {}, dropout_rate: {}, z_dropout: {}, regularizer: {}, "
-            "latent_distribution: {}"
-        ).format(n_gmvs, n_layers, n_hidden, dropout_rate, z_dropout, regularizer, latent_distribution)
+            "VEGASCVI model with following parameters: \nn_GMVs: {}, n_layers: {}, n_hidden: {}, dropout_rate: {}, z_dropout: {}, regularizer: {}, "
+            "dispersion: {}, gene_likelihood: {}, latent_distribution: {}"
+        ).format(n_gmvs, n_layers, n_hidden, dropout_rate, z_dropout, regularizer, dispersion, gene_likelihood, latent_distribution)
 
         self.init_params_ = self._get_init_params(locals())
         
@@ -111,33 +133,45 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
     def setup_anndata(
         cls,
         adata: AnnData,
+        layer: Optional[str] = None,
         batch_key: Optional[str] = None,
         labels_key: Optional[str] = None,
+        size_factor_key: Optional[str] = None,
+        categorical_covariate_keys: Optional[List[str]] = None,
+        continuous_covariate_keys: Optional[List[str]] = None,
         **kwargs,
     ):
         """
-        Create fields for VEGA model.
-
+        %(summary)s.
         Parameters
         ----------
+        %(param_layer)s
         %(param_batch_key)s
         %(param_labels_key)s
-        Notes
-        -----
-        Vanilla VEGA expects the expression data to come from `adata.X`
+        %(param_size_factor_key)s
+        %(param_cat_cov_keys)s
+        %(param_cont_cov_keys)s
         """
-        # SCVI basic setup
         setup_method_args = cls._get_setup_method_args(**locals())
         anndata_fields = [
-            LayerField(REGISTRY_KEYS.X_KEY, None, is_count_data=False),
+            LayerField(REGISTRY_KEYS.X_KEY, layer, is_count_data=True),
             CategoricalObsField(REGISTRY_KEYS.BATCH_KEY, batch_key),
             CategoricalObsField(REGISTRY_KEYS.LABELS_KEY, labels_key),
+            NumericalObsField(
+                REGISTRY_KEYS.SIZE_FACTOR_KEY, size_factor_key, required=False
+            ),
+            CategoricalJointObsField(
+                REGISTRY_KEYS.CAT_COVS_KEY, categorical_covariate_keys
+            ),
+            NumericalJointObsField(
+                REGISTRY_KEYS.CONT_COVS_KEY, continuous_covariate_keys
+            ),
         ]
         adata_manager = AnnDataManager(
             fields=anndata_fields, setup_method_args=setup_method_args
         )
         adata_manager.register_fields(adata, **kwargs)
-        cls.register_manager(adata_manager)
+        cls.register_manager(adata_manager)        
         # Create VEGA specific fields
         adata.uns['_vega'] = {}
         # Figure out a fix to add back version

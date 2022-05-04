@@ -13,9 +13,9 @@ import pandas as pd
 from anndata import AnnData
 import torch.nn.functional as F
 from torch import nn, optim
-from vega.utils import *
-from vega.utils import _anndata_loader, _anndata_splitter, _scvi_loader, _estimate_delta, _fdr_de_prediction
-from vega.learning_utils import *
+from .utils import *
+from .utils import _anndata_loader, _anndata_splitter, _scvi_loader, _estimate_delta, _fdr_de_prediction
+from .learning_utils import *
 import scanpy as sc
 from scipy import sparse
 
@@ -23,7 +23,7 @@ from scipy import sparse
 from scvi.dataloaders import AnnDataLoader
 from scvi.nn import FCLayers
 from scvi import _CONSTANTS
-from vega.layers import SparseLayer, DecoderVEGA
+from .layers import SparseLayer, DecoderVEGA
 
 class VEGA(torch.nn.Module):
     def __init__(self, adata: AnnData,

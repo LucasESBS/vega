@@ -9,7 +9,7 @@ from typing import Iterable, Optional
 from scvi.nn import DecoderSCVI, Encoder
 #from torch.distributions import Normal
 #from torch.distributions import kl_divergence as kl
-from vega.layers import DecoderVEGACount
+#from vega.layers import DecoderVEGACount
 
 torch.backends.cudnn.benchmark = True
 

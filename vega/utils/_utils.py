@@ -9,7 +9,7 @@ from anndata import AnnData
 import warnings
 from sklearn.mixture import GaussianMixture
 from typing import Union
-from _differential import DifferentialActivityComputation
+from ._differential import DifferentialActivityComputation
 from scvi.utils import track
 
 def create_mask(adata: AnnData,
