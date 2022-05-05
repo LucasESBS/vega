@@ -126,7 +126,6 @@ class VEGAVAECount(BaseModuleClass):
             activation_fn=torch.nn.ReLU,
             var_activation=var_activation,
             )
-
         self.l_encoder = Encoder(
             n_input_encoder,
             1,

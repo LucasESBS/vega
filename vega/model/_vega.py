@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, List
 
 import numpy as np
 import pandas as pd
@@ -113,6 +113,8 @@ class VEGA(VAEMixin, LatentMixin, RegularizedTrainingMixin, BaseModelClass):
         adata: AnnData,
         batch_key: Optional[str] = None,
         labels_key: Optional[str] = None,
+        categorical_covariate_keys: Optional[List[str]] = None,
+        continuous_covariate_keys: Optional[List[str]] = None,
         **kwargs,
     ):
         """
